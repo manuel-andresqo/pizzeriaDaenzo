@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#30401c">
+<title>Da Enzo Pizzería</title>
+<meta name="description" content="Da Enzo Pizzería — pizzas, pastas y pastichos. Secreto de familia desde 1989.">
+
+<!-- Tipografías: Fraunces (editorial, cálida) para el título · Jost (geométrica, eco del logotipo) para la interfaz.
+     Si Google Fonts no carga, la pila de respaldo mantiene la página usable (font-display: swap). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!-- El primer fotograma se precarga para que el fondo nunca aparezca negro -->
+<link rel="preload" as="image" href="assets/poster-intro.jpg">
+
+<style>
+/* =========================================================
+   1. TOKENS DE MARCA
+   Colores muestreados directamente del logo original:
+   verde oliva #30401C · crema #DDDDD1
+   ========================================================= */
+:root{
+  --olive-900:#1d2711;
+  --olive-800:#26331a;
+  --olive-700:#30401c;          /* fondo del logo */
+  --olive-500:#4c5f33;
+  --cream-100:#efeee4;
+  --cream-200:#ddddd1;          /* trazos del logo */
+  --cream-300:#c9c8b8;
+  --charcoal:#14130f;
+
+  --ink:var(--cream-100);
+  --ink-soft:rgba(239,238,228,.82);
+
+  --glass:rgba(20,24,13,.46);
+  --glass-strong:rgba(22,28,14,.62);
+  --glass-line:rgba(221,221,209,.20);
+  --glass-line-hi:rgba(221,221,209,.42);
+
+  --f-display:'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --f-ui:'Jost', 'Futura', 'Century Gothic', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+
+  --e-reveal:cubic-bezier(.16,1,.3,1);
+  --e-soft:cubic-bezier(.25,.8,.3,1);
+  --e-std:cubic-bezier(.4,0,.2,1);
+
+  --gutter:clamp(16px, 3.4vw, 48px);
+  --nav-h:clamp(68px, 10dvh, 104px);
+  --logo:clamp(54px, 7.4dvh, 78px);
+}
+@supports not (height:100dvh){
+  :root{ --nav-h:clamp(68px,10vh,104px); --logo:clamp(54px,7.4vh,78px); }
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;padding:0;overflow:hidden;background:var(--olive-900)}
+body{
+  font-family:var(--f-ui);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+}
+a{color:inherit}
+button{font:inherit;color:inherit}
+
+/* =========================================================
+   2. ESCENARIO A PANTALLA COMPLETA
+   ========================================================= */
+.hero{
+  position:relative;
+  width:100%;
+  height:100vh;            /* fallback */
+  height:100dvh;
+  overflow:hidden;
+  isolation:isolate;
+  background:var(--olive-900) url("assets/poster-intro.jpg") center/cover no-repeat;
+}
+
+/* ---------- Fondo de video ---------- */
+.bg{position:absolute;inset:0;z-index:0;pointer-events:none}
+.bg-video,
+.bg-still{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+  pointer-events:none;
+}
+/* Encuadre tras inspeccionar el material:
+   la intro tiene la pizza y la pala ligeramente a la izquierda del centro;
+   el bucle es un plano cerrado centrado. */
+.bg-video--intro{object-position:46% 58%; z-index:2; transition:opacity .45s var(--e-std)}
+.bg-video--loop {object-position:50% 50%; z-index:1}
+.bg-still{object-position:50% 60%; z-index:3; opacity:0; transition:opacity .6s var(--e-std)}
+.bg.is-looping .bg-video--intro{opacity:0}
+.bg.is-fallback .bg-still{opacity:1}
+
+/* ---------- Capa de legibilidad (deja la pizza visible) ---------- */
+.veil{position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    /* zona del título: oscurece solo el centro */
+    radial-gradient(ellipse 62% 46% at 50% 54%, rgba(12,13,8,.50) 0%, rgba(12,13,8,.26) 55%, rgba(12,13,8,0) 100%),
+    /* franja superior para la navegación */
+    linear-gradient(180deg, rgba(15,18,10,.62) 0%, rgba(15,18,10,.18) 18%, rgba(15,18,10,0) 32%),
+    /* base y viñeta suave */
+    linear-gradient(0deg, rgba(15,18,10,.55) 0%, rgba(15,18,10,0) 30%),
+    radial-gradient(ellipse 120% 100% at 50% 50%, rgba(0,0,0,0) 55%, rgba(10,10,6,.38) 100%);
+}
+/* grano muy fino: unifica el video con la interfaz */
+.veil::after{content:"";position:absolute;inset:0;opacity:.06;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");}
+
+/* =========================================================
+   3. NAVEGACIÓN SUPERIOR
+   ========================================================= */
+.nav{
+  position:absolute;top:0;left:0;right:0;z-index:5;
+  height:var(--nav-h);
+  padding:env(safe-area-inset-top) calc(var(--gutter) + env(safe-area-inset-right)) 0 calc(var(--gutter) + env(safe-area-inset-left));
+  display:flex;align-items:center;gap:16px;
+}
+.nav-links{
+  display:flex;align-items:center;gap:2px;
+  padding:5px;
+  border-radius:999px;
+  background:var(--glass);
+  border:1px solid var(--glass-line);
+  -webkit-backdrop-filter:blur(10px) saturate(1.05);
+  backdrop-filter:blur(10px) saturate(1.05);
+}
+.nav-links a{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;
+  border-radius:999px;
+  text-decoration:none;
+  font-size:13px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-soft);
+  transition:background-color .25s var(--e-std), color .25s var(--e-std);
+}
+.nav-links a:hover{background:rgba(221,221,209,.12);color:var(--cream-100)}
+.nav-links svg{width:15px;height:15px;flex:0 0 auto;opacity:.8}
+
+.brand{
+  margin-left:auto;
+  display:block;
+  width:var(--logo);height:var(--logo);
+  border-radius:50%;
+  padding:3px;
+  background:rgba(221,221,209,.55);   /* aro crema fino, como en el avatar de Instagram */
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+  transition:transform .35s var(--e-soft), box-shadow .35s var(--e-soft);
+}
+.brand img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.brand:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,0,0,.42)}
+
+/* botón de menú compacto (tableta/móvil) */
+.burger{
+  display:none;
+  align-items:center;gap:10px;
+  height:44px;padding:0 16px 0 14px;
+  border-radius:999px;cursor:pointer;
+  background:var(--glass-strong);
+  border:1px solid var(--glass-line);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  font-size:12.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--cream-100);
+  transition:background-color .25s var(--e-std), border-color .25s var(--e-std);
+}
+.burger:hover{background:rgba(30,38,18,.75);border-color:var(--glass-line-hi)}
+.burger-icon{position:relative;width:16px;height:10px}
+.burger-icon i{position:absolute;left:0;right:0;height:1.5px;border-radius:2px;background:currentColor;transition:transform .3s var(--e-soft), opacity .2s}
+.burger-icon i:nth-child(1){top:0}
+.burger-icon i:nth-child(2){top:4.25px}
+.burger-icon i:nth-child(3){bottom:0}
+.burger[aria-expanded="true"] .burger-icon i:nth-child(1){transform:translateY(4.25px) rotate(45deg)}
+.burger[aria-expanded="true"] .burger-icon i:nth-child(2){opacity:0}
+.burger[aria-expanded="true"] .burger-icon i:nth-child(3){transform:translateY(-4.25px) rotate(-45deg)}
+
+.menu{
+  display:none;
+  position:absolute;z-index:6;
+  top:calc(var(--nav-h) - 6px + env(safe-area-inset-top));
+  left:calc(var(--gutter) + env(safe-area-inset-left));
+  width:min(300px, calc(100vw - 2 * var(--gutter)));
+  flex-direction:column;
+  padding:8px;
+  border-radius:20px;
+  background:rgba(22,28,14,.88);
+  border:1px solid var(--glass-line);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  box-shadow:0 24px 60px rgba(0,0,0,.45);
+  transform-origin:top left;
+}
+.menu.open{display:flex;animation:menuIn .22s var(--e-soft) both}
+.menu a{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 14px;border-radius:12px;min-height:48px;
+  text-decoration:none;font-size:15px;font-weight:500;letter-spacing:.04em;
+  color:var(--ink-soft);
+  transition:background-color .2s var(--e-std), color .2s var(--e-std);
+}
+.menu a:hover{background:rgba(221,221,209,.08);color:var(--cream-100)}
+.menu svg{width:17px;height:17px;opacity:.75}
+@keyframes menuIn{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:none}}
+
+/* =========================================================
+   4. CONTENIDO CENTRAL
+   ========================================================= */
+.hero-inner{
+  position:absolute;z-index:4;
+  left:50%;top:54%;
+  transform:translate(-50%,-50%);
+  width:min(100% - 2 * var(--gutter), 1100px);
+  display:flex;flex-direction:column;align-items:center;
+  text-align:center;
+}
+
+.title{
+  margin:0;
+  font-family:var(--f-display);
+  font-weight:400;
+  font-variation-settings:"opsz" 144, "SOFT" 50;
+  font-size:min(7.4vw, 12.4dvh, 116px);
+  line-height:1.02;
+  letter-spacing:-.022em;
+  color:var(--cream-100);
+  text-shadow:0 2px 24px rgba(10,10,6,.35);
+  text-wrap:balance;
+}
+@supports not (height:100dvh){ .title{font-size:min(7.4vw,12.4vh,116px)} }
+.title .ln{display:block}
+.title .ln-i{display:block}
+.title em{font-style:italic;font-weight:400;color:var(--cream-200)}
+
+/* ---------- Botones ---------- */
+.actions{
+  margin-top:clamp(22px, 4.4dvh, 44px);
+  display:flex;flex-direction:column;align-items:center;
+  gap:clamp(12px, 2dvh, 18px);
+}
+.actions-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* .float = contenedor que flota; .btn = elemento interactivo (hover / entrada) */
+.float{display:inline-flex}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  font-family:var(--f-ui);
+  text-decoration:none;white-space:nowrap;cursor:pointer;
+  border:0;
+  transition:transform .35s var(--e-soft), background-color .3s var(--e-std), border-color .3s var(--e-std), box-shadow .35s var(--e-soft), color .3s var(--e-std);
+}
+
+.btn-secondary{
+  height:48px;min-width:172px;padding:0 26px;
+  border-radius:999px;
+  font-size:13.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--cream-100);
+  background:var(--glass-strong);
+  border:1px solid var(--glass-line-hi);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 10px 28px rgba(0,0,0,.25);
+}
+
+.btn-primary{
+  height:62px;min-width:356px;padding:0 34px 0 38px;
+  border-radius:999px;
+  font-size:16px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--olive-800);
+  background:var(--cream-100);
+  box-shadow:0 16px 40px rgba(10,12,6,.38), inset 0 0 0 1px rgba(255,255,255,.5);
+}
+.btn-primary .arw{width:28px;height:28px;flex:0 0 auto;border-radius:50%;
+  background:var(--olive-700);color:var(--cream-100);
+  display:grid;place-items:center;transition:transform .35s var(--e-soft)}
+.btn-primary .arw svg{width:13px;height:11px}
+
+@media (hover:hover) and (pointer:fine){
+  .btn-secondary:hover{transform:translateY(-2px);background:rgba(36,46,22,.72);border-color:rgba(239,238,228,.62);box-shadow:0 14px 32px rgba(0,0,0,.32)}
+  .btn-primary:hover{transform:translateY(-2px);background:#fbfaf2;box-shadow:0 20px 46px rgba(10,12,6,.44), inset 0 0 0 1px rgba(255,255,255,.6)}
+  .btn-primary:hover .arw{transform:translateX(3px)}
+}
+.btn:active{transform:translateY(0) scale(.985)}
+
+/* Foco visible y coherente con la marca */
+a:focus-visible,button:focus-visible{outline:2px solid var(--cream-100);outline-offset:4px;border-radius:999px}
+.brand:focus-visible{outline-offset:5px}
+
+/* ---------- Flotación (sutil, desfasada) ---------- */
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.is-ready .float{animation:floatY 6.4s ease-in-out infinite}
+.is-ready .float--b{animation-duration:7.2s;animation-delay:-2.1s}
+.is-ready .float--c{animation-duration:6.8s;animation-delay:-3.6s}
+.is-ready .float--c{animation-name:floatYc}
+@keyframes floatYc{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+
+/* ---------- Aviso de sección pendiente ---------- */
+.toast{
+  position:absolute;z-index:7;left:50%;
+  bottom:calc(clamp(18px, 4dvh, 36px) + env(safe-area-inset-bottom));
+  transform:translate(-50%, 12px);
+  padding:12px 20px;border-radius:999px;
+  background:rgba(22,28,14,.86);
+  border:1px solid var(--glass-line);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  font-size:13.5px;letter-spacing:.03em;color:var(--cream-100);
+  white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s var(--e-std), transform .4s var(--e-soft);
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast b{font-weight:600}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* =========================================================
+   5. SECUENCIA DE ENTRADA (una sola vez)
+   ========================================================= */
+html.anim .title .ln{overflow:hidden;padding-bottom:.12em;margin-bottom:-.12em;padding-top:.08em;margin-top:-.08em}
+html.anim .title .ln-i{transform:translateY(105%)}
+html.anim .brand,
+html.anim .nav-links a,
+html.anim .burger,
+html.anim .actions .btn{opacity:0}
+
+@keyframes lineRise{from{transform:translateY(105%)}to{transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes liftIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes pillIn{from{opacity:0;transform:translateY(12px) scale(.975)}to{opacity:1;transform:none}}
+@keyframes ctaIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+
+html.anim.go .brand{animation:fadeIn .9s var(--e-std) .15s both}
+html.anim.go .nav-links a{animation:liftIn .6s var(--e-soft) both}
+html.anim.go .nav-links a:nth-child(1){animation-delay:.32s}
+html.anim.go .nav-links a:nth-child(2){animation-delay:.38s}
+html.anim.go .nav-links a:nth-child(3){animation-delay:.44s}
+html.anim.go .nav-links a:nth-child(4){animation-delay:.50s}
+html.anim.go .burger{animation:liftIn .6s var(--e-soft) .32s both}
+html.anim.go .title .ln-i{animation:lineRise 1.1s var(--e-reveal) both}
+html.anim.go .title .ln:nth-child(1) .ln-i{animation-delay:.55s}
+html.anim.go .title .ln:nth-child(2) .ln-i{animation-delay:.67s}
+html.anim.go .actions-row .float:nth-child(1) .btn{animation:pillIn .7s var(--e-reveal) 1.05s both}
+html.anim.go .actions-row .float:nth-child(2) .btn{animation:pillIn .7s var(--e-reveal) 1.13s both}
+html.anim.go .btn-primary{animation:ctaIn .85s var(--e-reveal) 1.32s both}   /* último en terminar ≈ 2.17 s */
+
+/* =========================================================
+   6. RESPONSIVE
+   ========================================================= */
+
+/* Tableta: los 4 enlaces se pliegan en un menú compacto para no invadir el título */
+@media (max-width:960px){
+  .nav-links{display:none}
+  .burger{display:inline-flex}
+  .menu{display:none}
+  .menu.open{display:flex}
+  .title{font-size:min(9.4vw, 11dvh, 92px)}
+  .btn-primary{min-width:320px}
+}
+
+/* Móvil vertical */
+@media (max-width:600px){
+  :root{--gutter:18px; --nav-h:76px; --logo:56px}
+  .burger .burger-label{display:inline}
+  .hero-inner{top:53%}
+  .title{font-size:min(13.4vw, 9dvh, 62px);line-height:1.04}
+  .actions{margin-top:28px;gap:12px;width:100%}
+  .actions-row{gap:10px;width:100%;flex-wrap:nowrap}
+  .actions-row .float{flex:1 1 0;max-width:200px}
+  .btn-secondary{width:100%;min-width:0;height:50px;padding:0 14px;font-size:12.5px;letter-spacing:.12em}
+  .btn-primary{width:100%;min-width:0;height:60px;font-size:15px;letter-spacing:.12em;padding:0 22px 0 28px}
+  .actions > .float{width:100%;max-width:410px}
+  .actions-row{max-width:410px}
+  .bg-video--intro{object-position:44% 60%}
+  .bg-still{object-position:44% 60%}
+  .veil{background:
+    radial-gradient(ellipse 95% 42% at 50% 54%, rgba(12,13,8,.52) 0%, rgba(12,13,8,.24) 60%, rgba(12,13,8,0) 100%),
+    linear-gradient(180deg, rgba(15,18,10,.6) 0%, rgba(15,18,10,0) 22%),
+    linear-gradient(0deg, rgba(15,18,10,.55) 0%, rgba(15,18,10,0) 28%);}
+}
+
+/* Teléfonos muy estrechos: los secundarios se apilan sin perder jerarquía */
+@media (max-width:340px){
+  .actions-row{flex-direction:column;align-items:stretch}
+  .actions-row .float{max-width:none}
+  .title{font-size:11.6vw}
+}
+
+/* Pantallas bajas / móvil horizontal */
+@media (max-height:520px){
+  :root{--nav-h:60px; --logo:44px}
+  .burger{height:38px}
+  .hero-inner{top:56%}
+  .title{font-size:min(6.4vw, 13.5dvh, 64px)}
+  .actions{margin-top:16px;gap:10px}
+  .actions-row{flex-wrap:nowrap}
+  .btn-secondary{height:40px;min-width:150px}
+  .btn-primary{height:48px;min-width:280px;font-size:14px}
+  .btn-primary .arw{width:24px;height:24px}
+  .menu{max-height:calc(100dvh - var(--nav-h) - 8px);overflow:auto}
+}
+@media (max-height:380px){
+  .title .ln{display:inline}
+  .title .ln-i{display:inline}
+  .title{font-size:min(5.4vw, 13dvh)}
+}
+
+/* =========================================================
+   8. FASE 2 — VENTANAS INFORMATIVAS
+   Una sola ventana abierta a la vez. Se ubican bajo la barra
+   superior para que la navegación siga visible y utilizable.
+   ========================================================= */
+:root{
+  --beige:#d8c0a1;              /* muestreado de la pieza "Horario" de Da Enzo */
+  --beige-ink:#2e3b1c;
+  --terracotta:#c75c2e;         /* títulos manuscritos de la pieza "Horario" */
+  --ivory:#f4f1e6;
+  --ok:#2f7d3b;  --ok-bg:rgba(47,125,59,.14);
+  --ko:#b3301f;  --ko-bg:rgba(179,48,31,.12);
+  --win-r:26px;
+}
+
+.brand{border:0;cursor:pointer;font:inherit}
+.hero-inner{transition:opacity .4s var(--e-std)}
+.hero.has-win .hero-inner{opacity:0}
+.nav-links a[aria-current="true"]{background:rgba(221,221,209,.16);color:var(--cream-100)}
+.menu a[aria-current="true"]{color:var(--cream-100);background:rgba(221,221,209,.08)}
+/* la navegación queda por encima de la capa de ventanas para poder cambiar de sección */
+.nav{z-index:10}
+.menu{z-index:11}
+.social{z-index:10}
+
+.scrim{
+  position:absolute;inset:0;z-index:8;
+  background:rgba(12,14,8,.30);          /* separa sin ocultar la pizza */
+  opacity:0;visibility:hidden;
+  transition:opacity .35s var(--e-std), visibility 0s linear .35s;
+}
+.scrim.on{opacity:1;visibility:visible;transition:opacity .35s var(--e-std)}
+
+.win{
+  position:absolute;z-index:9;
+  left:50%;
+  top:calc(var(--nav-h) + env(safe-area-inset-top) + (100dvh - var(--nav-h) - env(safe-area-inset-top)) / 2);
+  width:min(var(--win-w, 520px), calc(100vw - 2 * var(--gutter)));
+  max-height:calc(100dvh - var(--nav-h) - env(safe-area-inset-top) - 28px);
+  display:flex;flex-direction:column;
+  border-radius:var(--win-r);
+  overflow:hidden;
+  opacity:0;visibility:hidden;
+  transform:translate(-50%,-50%) translateY(14px) scale(.985);
+  transition:opacity .24s var(--e-std), transform .3s var(--e-soft), visibility 0s linear .3s;
+  box-shadow:0 30px 80px rgba(8,10,5,.45), 0 2px 0 rgba(255,255,255,.04) inset;
+}
+@supports not (height:100dvh){
+  .win{top:calc(var(--nav-h) + (100vh - var(--nav-h)) / 2);max-height:calc(100vh - var(--nav-h) - 28px)}
+}
+.win.open{
+  opacity:1;visibility:visible;
+  transform:translate(-50%,-50%);
+  transition:opacity .38s var(--e-std), transform .5s var(--e-reveal);
+}
+
+/* variantes de superficie (no todas iguales: coherencia, no uniformidad) */
+.win--olive{
+  background:rgba(33,44,20,.90);
+  border:1px solid rgba(221,221,209,.16);
+  -webkit-backdrop-filter:blur(18px) saturate(1.1);backdrop-filter:blur(18px) saturate(1.1);
+  color:var(--cream-100);
+}
+.win--beige{background:var(--beige);color:var(--beige-ink)}
+.win--ivory{background:var(--ivory);color:var(--beige-ink)}
+
+.win-head{
+  flex:0 0 auto;
+  display:flex;align-items:center;gap:14px;
+  padding:22px 18px 10px 30px;
+}
+.win-eyebrow{display:block;font-size:11.5px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;opacity:.62;margin-bottom:4px}
+.win-title{
+  margin:0;
+  font-family:var(--f-display);font-weight:400;
+  font-variation-settings:"opsz" 144, "SOFT" 50;
+  font-size:clamp(30px, 4.2vw, 40px);line-height:1.05;letter-spacing:-.015em;
+}
+.win--beige .win-title{color:var(--olive-700)}
+.win-x{
+  margin-left:auto;align-self:flex-start;
+  width:44px;height:44px;flex:0 0 auto;
+  display:grid;place-items:center;
+  border-radius:50%;border:1px solid currentColor;
+  border-color:rgba(127,127,110,.35);
+  background:transparent;cursor:pointer;
+  transition:background-color .25s var(--e-std), transform .35s var(--e-soft), border-color .25s;
+}
+.win-x svg{width:16px;height:16px}
+.win-x:hover{background:rgba(127,127,110,.16);transform:rotate(90deg)}
+.win--olive .win-x{border-color:rgba(221,221,209,.32)}
+.win--olive .win-x:hover{background:rgba(221,221,209,.12)}
+.win :focus-visible{outline-color:currentColor}
+
+.win-body{
+  flex:1 1 auto;min-height:0;
+  overflow:auto;overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding:8px 30px 30px;
+}
+.win-note{margin:16px 0 0;font-size:12.5px;line-height:1.5;opacity:.68}
+
+/* ---------- botones internos ---------- */
+.w-btn{
+  display:flex;align-items:center;gap:14px;
+  width:100%;min-height:56px;
+  padding:10px 20px 10px 10px;
+  border-radius:999px;
+  text-decoration:none;cursor:pointer;
+  font-family:var(--f-ui);
+  transition:transform .35s var(--e-soft), background-color .3s var(--e-std), border-color .3s var(--e-std), box-shadow .35s var(--e-soft);
+}
+.w-btn .ic{width:40px;height:40px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center}
+.w-btn .ic svg{width:20px;height:20px}
+.w-btn .lbl{display:flex;flex-direction:column;line-height:1.2;text-align:left}
+.w-btn .lbl small{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.68}
+.w-btn .lbl b{font-weight:500;font-size:17px;letter-spacing:.02em}
+.w-btn .go{margin-left:auto;opacity:.6;transition:transform .35s var(--e-soft), opacity .3s}
+.w-btn .go svg{width:13px;height:11px;display:block}
+.w-btn--cream{background:var(--cream-100);color:var(--olive-800);box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.w-btn--cream .ic{background:var(--olive-700);color:var(--cream-100)}
+.w-btn--glass{background:rgba(221,221,209,.06);color:var(--cream-100);border:1px solid rgba(221,221,209,.26)}
+.w-btn--glass .ic{background:rgba(221,221,209,.12)}
+.w-btn--olive{background:var(--olive-700);color:var(--cream-100);box-shadow:0 12px 30px rgba(20,26,10,.25)}
+.w-btn--olive .ic{background:rgba(221,221,209,.14)}
+@media (hover:hover) and (pointer:fine){
+  .w-btn:hover{transform:translateY(-2px)}
+  .w-btn:hover .go{transform:translateX(3px);opacity:1}
+  .w-btn--cream:hover{background:#fbfaf2;box-shadow:0 16px 36px rgba(0,0,0,.28)}
+  .w-btn--glass:hover{background:rgba(221,221,209,.12);border-color:rgba(221,221,209,.45)}
+  .w-btn--olive:hover{background:#3a4d22}
+}
+.w-btn:active{transform:scale(.985)}
+.w-btn--static{cursor:default;user-select:text}
+.w-btn--static:hover,.w-btn--static:active{transform:none!important;background:rgba(221,221,209,.06)!important;border-color:rgba(221,221,209,.26)!important}
+
+/* ---------- Contacto ---------- */
+#win-contacto{--win-w:460px}
+.contact-actions{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.contact-actions .wa .ic{background:#25d366;color:#fff}   /* verde oficial de WhatsApp solo en el icono */
+.contact-foot{display:flex;align-items:center;gap:14px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(221,221,209,.14)}
+.mini-logo{width:52px;height:52px;border-radius:50%;padding:2px;background:rgba(221,221,209,.5);flex:0 0 auto}
+.mini-logo img{width:100%;height:100%;border-radius:50%;display:block}
+.contact-foot p{margin:0;font-size:13px;line-height:1.45;opacity:.72}
+
+/* ---------- Horarios ---------- */
+#win-horarios{--win-w:540px}
+.hours-logo{display:flex;justify-content:center;margin-top:20px}
+.hours-logo img{width:76px;height:76px;border-radius:50%;display:block;box-shadow:0 0 0 3px rgba(48,64,28,.18), 0 10px 24px rgba(60,40,15,.2)}
+.status{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:9px 16px 9px 12px;border-radius:999px;
+  font-size:13px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  background:rgba(46,59,28,.10);color:var(--beige-ink);
+  box-shadow:0 8px 22px rgba(60,40,15,.14);
+  animation:statusFloat 6s ease-in-out infinite;
+}
+.status svg{width:16px;height:16px}
+.status[data-state="open"]{background:var(--ok);color:#fff}
+.status[data-state="closed"]{background:var(--ko);color:#fff}
+.status-dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 0 currentColor}
+.status[data-state="open"] .status-dot{animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.55)}100%{box-shadow:0 0 0 8px rgba(255,255,255,0)}}
+@keyframes statusFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.status-next{margin:12px 0 0;font-size:15px;line-height:1.4}
+.days{list-style:none;margin:20px 0 0;padding:0;border-top:1px solid rgba(46,59,28,.16)}
+.days li{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:11px 12px;border-bottom:1px solid rgba(46,59,28,.12);font-size:15.5px}
+.days .d{font-weight:500}
+.days .h{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.days .h.off{opacity:.6;font-style:italic}
+.days li.today{background:rgba(255,255,255,.32);border-radius:12px;border-bottom-color:transparent}
+.days li.today .d{color:var(--terracotta)}
+.days li.today .d::after{content:"Hoy";margin-left:8px;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--terracotta);color:#fff;vertical-align:2px}
+#win-horarios .win-note{color:var(--beige-ink)}
+
+/* ---------- Ubicación ---------- */
+#win-ubicacion{--win-w:760px}
+.map-card .pin{width:44px;height:44px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;background:var(--cream-100);color:var(--olive-700)}
+.map-card .pin svg{width:20px;height:20px}
+.map{position:relative;margin-top:6px;border-radius:18px;overflow:hidden;background:rgba(221,221,209,.08);border:1px solid rgba(221,221,209,.16);aspect-ratio:16/9.6}
+.map-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:44% 45%;display:block;pointer-events:none;transition:transform .6s var(--e-soft)}
+.map-hit{position:absolute;inset:0;z-index:2;border-radius:18px;cursor:pointer}
+.map-hit:focus-visible{outline:2px solid var(--cream-100);outline-offset:-4px;border-radius:18px}
+.map-card{position:absolute;z-index:3;left:14px;right:14px;bottom:14px;pointer-events:none;
+  display:flex;gap:14px;align-items:flex-start;padding:14px 18px 14px 14px;border-radius:16px;
+  background:var(--ivory);color:var(--beige-ink);box-shadow:0 14px 34px rgba(10,12,6,.35)}
+.map-card .pin{background:var(--olive-700);color:var(--cream-100)}
+.map-card-txt{display:flex;flex-direction:column;min-width:0}
+.map-card .a1{font-family:var(--f-display);font-size:19px;line-height:1.25;color:var(--olive-700)}
+.map-card .a2{margin-top:3px;font-size:13px;opacity:.7}
+.map-cta{display:inline-flex;align-items:center;gap:8px;margin-top:8px;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--terracotta)}
+.map-cta svg{width:12px;height:10px;transition:transform .35s var(--e-soft)}
+@media (hover:hover) and (pointer:fine){
+  .map:hover .map-img{transform:scale(1.03)}
+  .map:hover .map-cta svg{transform:translateX(3px)}
+}
+
+/* ---------- Políticas ---------- */
+#win-privacidad{--win-w:680px}
+.draft{display:inline-flex;align-items:center;gap:8px;margin:0 0 4px;padding:6px 12px;border-radius:999px;background:rgba(199,92,46,.12);color:#9a3f18;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+.draft svg{width:14px;height:14px}
+.tabs{display:flex;gap:8px;padding:6px 30px 16px;flex:0 0 auto;border-bottom:1px solid rgba(46,59,28,.12)}
+.tab{
+  flex:1 1 0;height:46px;padding:0 14px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(46,59,28,.22);background:transparent;color:var(--beige-ink);
+  font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  transition:background-color .25s var(--e-std), color .25s var(--e-std), border-color .25s, box-shadow .3s, transform .35s var(--e-soft);
+}
+.tab:hover{border-color:rgba(46,59,28,.5)}
+.tab[aria-selected="true"]{background:var(--olive-700);border-color:var(--olive-700);color:var(--cream-100);box-shadow:0 10px 22px rgba(30,40,15,.22)}
+.tab[aria-selected="true"]::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cream-100);margin-right:9px;vertical-align:2px}
+.policy{transition:opacity .22s var(--e-std), transform .3s var(--e-soft)}
+.policy.swap{opacity:0;transform:translateY(6px)}
+.policy h3{margin:16px 0 12px;font-family:var(--f-display);font-weight:400;font-size:26px;line-height:1.15;color:var(--olive-700)}
+.policy p{margin:0 0 14px;font-size:15.5px;line-height:1.68;max-width:62ch}
+#win-privacidad .win-body{padding-top:6px}
+
+/* ---------- Panel de redes sociales ---------- */
+.social{
+  position:absolute;z-index:10;
+  top:calc(var(--nav-h) + env(safe-area-inset-top) - 2px);
+  right:calc(var(--gutter) + env(safe-area-inset-right));
+  display:flex;align-items:center;gap:6px;
+  padding:7px 7px 7px 18px;
+  border-radius:999px;
+  background:rgba(26,34,16,.80);
+  border:1px solid var(--glass-line);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:0 16px 40px rgba(0,0,0,.32);
+  opacity:0;visibility:hidden;
+  transform:translateY(-8px);
+  transition:opacity .35s var(--e-std), transform .45s var(--e-soft), visibility 0s linear .45s;
+}
+.social::before{ /* pequeña muesca que lo une al logo */
+  content:"";position:absolute;top:-6px;right:calc(var(--logo) / 2 - 6px);
+  width:12px;height:12px;transform:rotate(45deg);
+  background:rgba(26,34,16,.80);border-left:1px solid var(--glass-line);border-top:1px solid var(--glass-line);
+  border-radius:3px 0 0 0;
+}
+.social.open{opacity:1;visibility:visible;transform:none;transition:opacity .5s var(--e-std), transform .6s var(--e-reveal)}
+.social-label{font-family:var(--f-display);font-style:italic;font-size:17px;margin-right:6px;color:var(--cream-100)}
+.social a,.social button{
+  width:42px;height:42px;border-radius:50%;flex:0 0 auto;
+  display:grid;place-items:center;cursor:pointer;
+  color:var(--cream-100);text-decoration:none;
+  background:rgba(221,221,209,.10);border:1px solid rgba(221,221,209,.18);
+  transition:background-color .25s var(--e-std), transform .35s var(--e-soft), border-color .25s;
+}
+.social a svg{width:19px;height:19px}
+.social a:hover{background:rgba(221,221,209,.2);transform:translateY(-2px)}
+.social .social-x{background:transparent;border-color:transparent;width:36px;height:36px;margin-left:2px}
+.social .social-x svg{width:13px;height:13px;opacity:.75}
+.social .social-x:hover{background:rgba(221,221,209,.1)}
+
+/* ---------- Responsive de las ventanas ---------- */
+@media (max-width:760px){
+}
+@media (max-width:600px){
+  :root{--win-r:22px}
+  .win{width:calc(100vw - 24px)}
+  .win-head{padding:18px 12px 8px 22px}
+  .win-body{padding:6px 22px 24px}
+  .tabs{padding:4px 22px 14px;gap:6px}
+  .tab{padding:0 6px;font-size:11.5px;letter-spacing:.1em;height:46px}
+  .tab[aria-selected="true"]::before{display:none}
+  .policy p{font-size:15px}
+  .days li{padding:11px 8px;font-size:14.5px}
+  .days li.today .d::after{margin-left:6px;padding:2px 6px}
+  .draft{font-size:10px;letter-spacing:.08em;border-radius:12px;line-height:1.35}
+  .map{aspect-ratio:auto;height:min(440px, calc(100dvh - var(--nav-h) - 150px))}
+  .map-card{left:10px;right:10px;bottom:10px;padding:12px 14px 12px 12px}
+  .map-card .a1{font-size:17px}
+  .map-cta{font-size:10.5px;letter-spacing:.06em;white-space:nowrap}
+  .map-card .a2{display:none}   /* tarjeta más baja: deja visible el pin del mapa */
+  .social{padding-left:14px}
+  .social-label{font-size:15.5px}
+}
+@media (max-height:520px){
+  .win{max-height:calc(100dvh - var(--nav-h) - 12px)}
+  .win-head{padding-top:12px}
+  .win-title{font-size:26px}
+  .map{aspect-ratio:auto;height:calc(100dvh - var(--nav-h) - 110px);min-height:200px}
+  .map-card .a2{display:none}
+}
+
+/* =========================================================
+   7. MOVIMIENTO REDUCIDO
+   ========================================================= */
+@media (prefers-reduced-motion:reduce){
+  html.anim .title .ln-i{transform:none}
+  html.anim .brand, html.anim .nav-links a, html.anim .burger, html.anim .actions .btn{opacity:1}
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+}
+</style>
+<!-- Fase 3: estilos de la vista Reseñas -->
+<link rel="stylesheet" href="css/reviews.css">
+<!-- Fase 4: estilos de «Sobre nosotros» -->
+<link rel="stylesheet" href="css/about.css">
+<!-- Fase 5: estilos de «Ordenar mi pedido» -->
+<link rel="stylesheet" href="css/order.css">
+
+<!-- A) ENTRADA: se arma de forma síncrona para evitar un destello sin animar -->
+<script>
+(function(){
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('reduced');
+    return;
+  }
+  var root = document.documentElement, started = false, bootTimer, safety;
+  root.classList.add('anim');
+  function clean(){
+    clearTimeout(safety);
+    document.removeEventListener('animationend', onEnd, true);
+    root.classList.remove('anim','go');
+    document.body.classList.add('is-ready');            // activa la flotación
+  }
+  function onEnd(e){ if (e.animationName === 'ctaIn') clean(); }
+  function start(){
+    if (started) return; started = true;
+    clearTimeout(bootTimer);
+    document.addEventListener('animationend', onEnd, true);
+    safety = setTimeout(clean, 3200);
+    root.classList.add('go');
+  }
+  function boot(){
+    bootTimer = setTimeout(start, 700);                 // techo: nunca esperar más a la fuente
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(start, start);
+    else start();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+</head>
+
+<body>
+<main class="hero" id="inicio">
+
+  <!-- Fondo: intro completa (una vez) → bucle de la pizza girando -->
+  <div class="bg" id="bg" aria-hidden="true">
+    <video class="bg-video bg-video--intro" id="vIntro"
+           muted playsinline autoplay preload="auto"
+           disablepictureinpicture disableremoteplayback
+           poster="assets/poster-intro.jpg">
+      <source src="assets/daenzo-intro.webm" type="video/webm">
+      <source src="assets/daenzo-intro.mp4" type="video/mp4">
+    </video>
+    <video class="bg-video bg-video--loop" id="vLoop"
+           muted playsinline loop preload="none"
+           disablepictureinpicture disableremoteplayback>
+      <source src="assets/daenzo-loop.webm" type="video/webm">
+      <source src="assets/daenzo-loop.mp4" type="video/mp4">
+    </video>
+    <!-- Alternativa si el navegador bloquea la reproducción: fotograma real del video -->
+    <img class="bg-still" id="bgStill" src="assets/poster-fallback.jpg" alt="" decoding="async">
+  </div>
+  <div class="veil" aria-hidden="true"></div>
+
+  <!-- Navegación superior -->
+  <header class="nav">
+    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="menu" aria-label="Abrir menú">
+      <span class="burger-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="burger-label">Menú</span>
+    </button>
+
+    <nav class="nav-links" aria-label="Principal">
+      <a href="#contacto"  data-pending="Contacto">Contacto</a>
+      <a href="#horarios"  data-pending="Horarios">Horarios</a>
+      <a href="#ubicacion" data-pending="Ubicación">Ubicación</a>
+      <a href="#privacidad" data-pending="Políticas de privacidad">Políticas de privacidad</a>
+    </nav>
+
+    <!-- Fase 2: el logo es el control que abre/cierra el panel de redes -->
+    <button class="brand" id="brand" data-social-toggle type="button" aria-expanded="false" aria-controls="social" aria-label="Da Enzo Pizzería — mostrar redes sociales">
+      <img src="assets/logo-da-enzo.png" width="447" height="447" alt="">
+    </button>
+  </header>
+
+  <!-- Panel flotante de redes sociales (debajo del logo) -->
+  <div class="social" id="social" role="region" aria-label="Redes sociales de Da Enzo">
+    <span class="social-label">Síguenos</span>
+    <a data-bind-href="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Da Enzo (se abre en una pestaña nueva)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="2.8" y="2.8" width="18.4" height="18.4" rx="5.2"/><circle cx="12" cy="12" r="4.3"/><circle cx="17.4" cy="6.6" r="1.15" fill="currentColor" stroke="none"/></svg>
+    </a>
+    <a data-bind-href="facebook" target="_blank" rel="noopener noreferrer" aria-label="Facebook de Da Enzo (se abre en una pestaña nueva)">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg>
+    </a>
+    <button class="social-x" type="button" id="socialClose" aria-label="Cerrar panel de redes sociales">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg>
+    </button>
+  </div>
+
+  <!-- Menú compacto (tableta / móvil) -->
+  <nav class="menu" id="menu" aria-label="Principal (móvil)">
+    <a href="#contacto" data-pending="Contacto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.5L3 21l2-5.5A8.4 8.4 0 1 1 21 11.5Z"/></svg>
+      Contacto</a>
+    <a href="#horarios" data-pending="Horarios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      Horarios</a>
+    <a href="#ubicacion" data-pending="Ubicación">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+      Ubicación</a>
+    <a href="#privacidad" data-pending="Políticas de privacidad">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 5 6v5.5c0 4.4 3 8.2 7 9.5 4-1.3 7-5.1 7-9.5V6l-7-3Z"/></svg>
+      Políticas de privacidad</a>
+  </nav>
+
+  <!-- Composición central -->
+  <div class="hero-inner">
+    <h1 class="title" aria-label="El sabor que te hace volver">
+      <span class="ln" aria-hidden="true"><span class="ln-i">El sabor que</span></span>
+      <span class="ln" aria-hidden="true"><span class="ln-i">te hace <em>volver</em></span></span>
+    </h1>
+
+    <div class="actions">
+      <div class="actions-row">
+        <span class="float float--a">
+          <a class="btn btn-secondary" href="#sobre-nosotros" data-pending="Sobre nosotros">Sobre nosotros</a>
+        </span>
+        <span class="float float--b">
+          <a class="btn btn-secondary" href="#resenas" data-pending="Reseñas">Reseñas</a>
+        </span>
+      </div>
+      <span class="float float--c">
+        <a class="btn btn-primary" href="#ordenar" data-pending="Ordenar mi pedido">
+          Ordenar mi pedido
+          <span class="arw" aria-hidden="true">
+            <svg viewBox="0 0 12 10" fill="none"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </a>
+      </span>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       FASE 2 — VENTANAS INFORMATIVAS
+       Los datos (teléfonos, horarios, dirección, textos) se
+       inyectan desde DAENZO_CONFIG; no se repiten aquí.
+       ===================================================== -->
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+  <!-- Contacto -->
+  <section class="win win--olive" id="win-contacto" role="dialog" aria-modal="true" aria-labelledby="t-contacto" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Escríbenos o llámanos</span><h2 class="win-title" id="t-contacto">Contacto</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar Contacto"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body">
+      <div class="contact-actions">
+        <a class="w-btn w-btn--cream wa" data-bind-href="whatsappUrl" target="_blank" rel="noopener noreferrer">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg></span>
+          <span class="lbl"><b>WhatsApp</b><small data-bind-text="whatsappDisplay"></small></span>
+          <span class="go" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+        <!-- Solo informativo: muestra el número, no inicia llamadas -->
+        <div class="w-btn w-btn--glass w-btn--static">
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 3.5h3.2l1.6 4-2 1.3a11 11 0 0 0 5.2 5.2l1.3-2 4 1.6v3.2a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 3.2 5.7a2 2 0 0 1 2-2.2Z"/></svg></span>
+          <span class="lbl"><small>Teléfono secundario</small><b data-bind-text="phoneDisplay"></b></span>
+        </div>
+      </div>
+      <div class="contact-foot">
+        <span class="mini-logo"><img src="assets/logo-da-enzo.png" alt="Da Enzo Pizzería" width="447" height="447"></span>
+        <p>Da Enzo Pizzería · Secreto de familia desde 1989</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Horarios -->
+  <section class="win win--beige" id="win-horarios" role="dialog" aria-modal="true" aria-labelledby="t-horarios" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Hora de Venezuela</span><h2 class="win-title" id="t-horarios">Horarios</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar Horarios"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body">
+      <div class="hours">
+        <div class="hours-side">
+          <div class="status" id="status" data-state="neutral" role="status" aria-live="polite">
+            <span class="status-dot" aria-hidden="true"></span><span class="status-text">—</span>
+          </div>
+          <p class="status-next" id="statusNext"></p>
+          <ul class="days" id="days" aria-label="Horario semanal"></ul>
+          <p class="win-note">El estado se calcula con el horario habitual en hora de Venezuela. No confirma la atención en tiempo real ni cierres extraordinarios.</p>
+          <div class="hours-logo"><img src="assets/logo-da-enzo.png" width="447" height="447" alt="Da Enzo Pizzería"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ubicación -->
+  <section class="win win--olive" id="win-ubicacion" role="dialog" aria-modal="true" aria-labelledby="t-ubicacion" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Te esperamos</span><h2 class="win-title" id="t-ubicacion">Ubicación</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar Ubicación"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body">
+      <!-- El mapa completo es el enlace de «Cómo llegar»; la dirección va dentro del recuadro -->
+      <div class="map" id="map">
+        <!-- Imagen del mapa de Google (captura de la zona); el recuadro completo abre la ruta en Google Maps -->
+        <img class="map-img" src="assets/mapa-da-enzo.jpg" width="763" height="406" alt="" decoding="async">
+        <a class="map-hit" data-bind-href="directionsUrl" target="_blank" rel="noopener noreferrer" aria-label="Cómo llegar a Da Enzo Pizzería: abre la ruta en Google Maps (pestaña nueva)"></a>
+        <div class="map-card" aria-hidden="true">
+          <span class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+          <span class="map-card-txt">
+            <span class="a1" data-bind-text="address"></span>
+            <span class="a2" data-bind-text="mapsQuery"></span>
+            <span class="map-cta">Toca el mapa para ver cómo llegar <svg viewBox="0 0 12 10" fill="none"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </span>
+        </div>
+      </div>
+      <address class="sr-only" data-bind-text="address"></address>
+    </div>
+  </section>
+
+  <!-- Políticas de privacidad -->
+  <section class="win win--ivory" id="win-privacidad" role="dialog" aria-modal="true" aria-labelledby="t-privacidad" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Información para clientes</span><h2 class="win-title" id="t-privacidad">Políticas</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar Políticas de privacidad"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="tabs" role="tablist" aria-label="Apartados de las políticas" id="tabs"></div>
+    <div class="win-body">
+      <div class="policy" id="policy" role="tabpanel" tabindex="0"></div>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       FASE 3 — VISTA «RESEÑAS» (ruta #resenas)
+       Lógica en js/reviews/*.js · estilos en css/reviews.css
+       ===================================================== -->
+  <section class="rv" id="reviews" aria-label="Reseñas de Da Enzo" hidden>
+    <header class="rv-bar">
+      <button type="button" class="rv-back" aria-label="Volver a la pantalla principal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
+        <span class="rv-back-label">Inicio</span>
+      </button>
+      <button type="button" class="rv-account" id="rvAccount">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.4-3.7 4.2-5.5 7.5-5.5s6.1 1.8 7.5 5.5"/></svg>
+        <span class="rv-account-label">Acceder</span>
+      </button>
+      <button class="brand rv-brand" type="button" data-social-toggle aria-expanded="false" aria-controls="social" aria-label="Da Enzo Pizzería — mostrar redes sociales">
+        <img src="assets/logo-da-enzo.png" width="447" height="447" alt="">
+      </button>
+    </header>
+
+    <div class="rv-scroll">
+      <div class="rv-hero">
+        <!-- Video: acercamiento a las pizzas (una vez) → bucle con la cámara quieta y solo el humo en movimiento -->
+        <div class="rv-hero-media" id="rvHeroMedia" aria-hidden="true">
+          <video class="rv-hero-img rv-hero-video rv-hero-video--loop" muted loop playsinline preload="none"
+                 disablepictureinpicture disableremoteplayback poster="assets/resenas/resenas-hold.jpg">
+            <source src="assets/resenas/resenas-loop.webm" type="video/webm">
+            <source src="assets/resenas/resenas-loop.mp4" type="video/mp4">
+          </video>
+          <video class="rv-hero-img rv-hero-video rv-hero-video--intro" muted playsinline preload="none"
+                 disablepictureinpicture disableremoteplayback poster="assets/resenas/resenas-poster.jpg">
+            <source src="assets/resenas/resenas-intro.webm" type="video/webm">
+            <source src="assets/resenas/resenas-intro.mp4" type="video/mp4">
+          </video>
+        </div>
+        <div class="rv-hero-txt">
+          <p class="rv-eyebrow">Reseñas</p>
+          <h1 class="rv-title">Lo que dicen quienes ya probaron <em>Da Enzo</em></h1>
+          <p class="rv-lead">Cada pizza tiene una historia. Descubre las experiencias que compartimos alrededor de la mesa.</p>
+        </div>
+      </div>
+
+      <div class="rv-wrap">
+        <div class="rv-top">
+          <div>
+            <h2 class="rv-h2">Opiniones</h2>
+            <p class="rv-demo-note"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6.3"/><path d="M8 7.2v4M8 4.9v.1"/></svg><span><b>Reseñas de demostración:</b> contenido ficticio utilizado para diseñar la experiencia.</span></p>
+            <button type="button" class="rv-jump" id="rvJump">Escribir una reseña</button>
+          </div>
+          <div class="rv-summary" id="rvSummary" aria-live="polite"></div>
+        </div>
+
+        <div class="rv-grid">
+          <div class="rv-list" id="rvList" aria-label="Listado de reseñas de demostración"></div>
+          <aside class="rv-aside" aria-label="Agregar una reseña">
+            <div class="rv-aside-in">
+              <div class="rv-formbox" id="rvFormBox"></div>
+              <button type="button" class="rv-order" id="rvOrder">
+                <span>Ordenar mi pedido</span>
+                <span class="arw" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </button>
+            </div>
+          </aside>
+        </div>
+        <footer class="rv-foot">Da Enzo Pizzería · Secreto de familia desde 1989</footer>
+      </div>
+    </div>
+
+    <!-- Aviso de inicio de sesión (js/reviews/login-prompt.js) -->
+    <div class="lp" id="rvLogin" role="dialog" aria-labelledby="lpTitle" aria-describedby="lpSub" hidden>
+      <button type="button" class="lp-x" aria-label="Cerrar aviso de inicio de sesión"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+      <div class="lp-head">
+        <img class="lp-logo" src="assets/logo-da-enzo.png" width="447" height="447" alt="">
+        <div><p class="lp-title" id="lpTitle">Inicia sesión en Da Enzo</p><p class="lp-sub" id="lpSub">Publica tus reseñas con tu nombre en un solo paso.</p></div>
+      </div>
+      <button type="button" class="lp-google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg><span>Continuar con Google</span></button>
+      <button type="button" class="lp-mail">Prefiero usar mi correo</button>
+      <p class="lp-msg" role="status" hidden>El acceso con Google aún no está conectado en esta demostración, así que no se ha iniciado sesión. Cuando se configure, al pulsar «Continuar» la cuenta se creará automáticamente.</p>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       VISTA «SOBRE NOSOTROS» (ruta #sobre-nosotros)
+       Contenido en js/about/about-data.js (FICTICIO, demo) · estilos en css/about.css
+       ===================================================== -->
+  <section class="ab" id="about" aria-label="Sobre nosotros · Da Enzo" hidden>
+    <header class="rv-bar ab-bar">
+      <button type="button" class="rv-back" aria-label="Volver a la pantalla principal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
+        <span class="rv-back-label">Inicio</span>
+      </button>
+      <p class="ab-bar-name" aria-hidden="true">Da Enzo <span>· Pizzería</span></p>
+      <button type="button" class="rv-account" id="abAccount">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.4-3.7 4.2-5.5 7.5-5.5s6.1 1.8 7.5 5.5"/></svg>
+        <span class="rv-account-label">Acceder</span>
+      </button>
+      <button class="brand rv-brand" type="button" data-social-toggle aria-expanded="false" aria-controls="social" aria-label="Da Enzo Pizzería — mostrar redes sociales">
+        <img src="assets/logo-da-enzo.png" width="447" height="447" alt="">
+      </button>
+    </header>
+
+    <div class="ab-scroll"><div id="abContent"></div></div>
+
+    <!-- Botón flotante arrastrable (js/about/floating-order.js) -->
+    <button type="button" class="ab-order" id="abOrder" aria-describedby="abOrderHint">
+      <span class="ab-order-grip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="ab-order-txt">Ordenar mi pedido</span>
+      <span class="arw" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </button>
+    <span class="sr-only" id="abOrderHint">Puedes moverlo arrastrándolo, o con Alt y las flechas del teclado.</span>
+
+    <!-- Aviso de inicio de sesión (reutiliza js/reviews/login-prompt.js) -->
+    <div class="lp lp--about" id="abLogin" role="dialog" aria-labelledby="abLpTitle" aria-describedby="abLpSub" hidden>
+      <button type="button" class="lp-x" aria-label="Cerrar aviso de inicio de sesión"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+      <div class="lp-head">
+        <img class="lp-logo" src="assets/logo-da-enzo.png" width="447" height="447" alt="">
+        <div><p class="lp-title" id="abLpTitle">Forma parte de Da Enzo</p><p class="lp-sub" id="abLpSub">Crea tu cuenta para publicar reseñas con tu nombre.</p></div>
+      </div>
+      <button type="button" class="lp-google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg><span>Continuar con Google</span></button>
+      <button type="button" class="lp-mail">Prefiero usar mi correo</button>
+      <p class="lp-msg" role="status" hidden>El acceso con Google aún no está conectado en esta demostración, así que no se ha iniciado sesión. Cuando se configure, al pulsar «Continuar» la cuenta se creará automáticamente.</p>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       VISTA «ORDENAR MI PEDIDO» (ruta #pedido-local)
+       Datos en js/order/menu-data.js · lógica del carrito en js/order/cart.js
+       ===================================================== -->
+  <section class="od" id="order" aria-label="Ordenar mi pedido · Da Enzo" hidden>
+    <header class="rv-bar od-bar">
+      <button type="button" class="rv-back" aria-label="Volver">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
+        <span class="rv-back-label">Volver</span>
+      </button>
+      <p class="ab-bar-name od-bar-name" aria-hidden="true">Da Enzo <span>· Tu pedido</span></p>
+      <button type="button" class="rv-account" id="odAccount">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.4-3.7 4.2-5.5 7.5-5.5s6.1 1.8 7.5 5.5"/></svg>
+        <span class="rv-account-label">Acceder</span>
+      </button>
+      <button class="brand rv-brand" type="button" data-social-toggle aria-expanded="false" aria-controls="social" aria-label="Da Enzo Pizzería — mostrar redes sociales">
+        <img src="assets/logo-da-enzo.png" width="447" height="447" alt="">
+      </button>
+    </header>
+    <div class="od-scroll"><div id="odContent"></div></div>
+
+    <!-- Resumen inferior en móvil -->
+    <div class="od-mbar" id="odMbar">
+      <button type="button" class="od-mbar-cart" id="odMbarCart"><span class="od-badge" data-cart-count>0</span><span class="od-mbar-txt"><b data-cart-total>$0,00</b><small>Ver carrito</small></span></button>
+      <button type="button" class="od-mbar-drinks" id="odMbarDrinks" aria-label="Ver carta de bebidas"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" aria-hidden="true"><path d="M10 8h28L24 24zM24 24v14M16 40h16"/></svg><span>Bebidas</span></button>
+      <button type="button" class="od-continue od-continue--m" data-continue>Continuar pedido</button>
+    </div>
+
+    <!-- Llamar al mesero (arrastrable, reutiliza js/about/floating-order.js) -->
+    <button type="button" class="ab-order od-waiter" id="odWaiter" aria-describedby="odWaiterHint">
+      <span class="ab-order-grip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="od-waiter-txt"><span class="ab-order-txt">Llamar al mesero</span><span class="od-table" id="odTable"></span></span>
+      <span class="arw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15a6 6 0 0 1 12 0M4 15h16M12 9V7M10 7h4"/></svg></span>
+    </button>
+    <!-- Aviso de inicio de sesión (reutiliza js/reviews/login-prompt.js) -->
+    <div class="lp lp--order" id="odLogin" role="dialog" aria-labelledby="odLpTitle" aria-describedby="odLpSub" hidden>
+      <button type="button" class="lp-x" aria-label="Cerrar aviso de inicio de sesión"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+      <div class="lp-head">
+        <img class="lp-logo" src="assets/logo-da-enzo.png" width="447" height="447" alt="">
+        <div><p class="lp-title" id="odLpTitle">Inicia sesión para pedir</p><p class="lp-sub" id="odLpSub">Guarda tus pedidos y publica reseñas con tu nombre.</p></div>
+      </div>
+      <button type="button" class="lp-google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg><span>Continuar con Google</span></button>
+      <button type="button" class="lp-mail">Prefiero usar mi correo</button>
+      <p class="lp-msg" role="status" hidden>El acceso con Google aún no está conectado en esta demostración, así que no se ha iniciado sesión. Cuando se configure, al pulsar «Continuar» la cuenta se creará automáticamente.</p>
+    </div>
+    <span class="sr-only" id="odWaiterHint">Puedes moverlo arrastrándolo, o con Alt y las flechas del teclado.</span>
+  </section>
+
+  <section class="win win--ivory od-win od-mode" id="win-modo" role="dialog" aria-modal="true" aria-labelledby="t-modo" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Ordenar mi pedido</span><h2 class="win-title" id="t-modo">¿Cómo quieres disfrutar Da Enzo?</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
+  <section class="win win--ivory od-win od-product" id="win-producto" role="dialog" aria-modal="true" aria-labelledby="t-producto" hidden>
+    <button class="win-x od-px" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    <div class="win-body od-product-body"></div>
+  </section>
+  <section class="win win--olive od-win od-drinks" id="win-bebidas" role="dialog" aria-modal="true" aria-labelledby="t-bebidas" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Para acompañar</span><h2 class="win-title" id="t-bebidas">Bebidas</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
+  <section class="win win--ivory od-win od-review" id="win-revision" role="dialog" aria-modal="true" aria-labelledby="t-revision" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Antes de confirmar</span><h2 class="win-title" id="t-revision">¿Está todo listo para disfrutar?</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
+  <section class="win win--olive od-win od-confirm" id="win-confirmacion" role="dialog" aria-modal="true" aria-labelledby="t-confirmacion" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Pedido de demostración</span><h2 class="win-title" id="t-confirmacion">Tu pedido está tomando forma</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
+  <section class="win win--ivory od-win od-summary" id="win-resumen" role="dialog" aria-modal="true" aria-labelledby="t-resumen" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Detalle completo</span><h2 class="win-title" id="t-resumen">Mi pedido</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
+  <section class="win win--ivory od-win od-cartwin" id="win-carrito" role="dialog" aria-modal="true" aria-labelledby="t-carrito" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Tu pedido</span><h2 class="win-title" id="t-carrito">Carrito</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
+
+  <!-- Delivery: datos de entrega y seguimiento (js/order/delivery.js) -->
+  <section class="win win--ivory od-win od-delivery" id="win-entrega" role="dialog" aria-modal="true" aria-labelledby="t-entrega" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Pedido a domicilio</span><h2 class="win-title" id="t-entrega">¿Dónde llevamos tu pedido?</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
+  <section class="win win--olive od-win od-confirm od-tracking" id="win-seguimiento" role="dialog" aria-modal="true" aria-labelledby="t-seguimiento" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Pedido a domicilio</span><h2 class="win-title" id="t-seguimiento">Estamos preparando el siguiente paso de tu pedido</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
+
+  <!-- Detalle de una reseña (usa el gestor de ventanas existente) -->
+  <section class="win win--ivory rv-detail" id="win-resena" role="dialog" aria-modal="true" aria-labelledby="t-resena" hidden>
+    <header class="win-head">
+      <div class="rv-detail-head"></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar reseña"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"><div class="rv-detail-body"></div></div>
+    <div class="rv-lightbox" role="dialog" aria-label="Foto ampliada" hidden>
+      <button type="button" class="rv-lb-close" aria-label="Cerrar foto"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+      <button type="button" class="rv-lb-nav rv-lb-prev" aria-label="Foto anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <figure><img alt=""><figcaption><span class="rv-lb-cap"></span><span class="rv-lb-count"></span></figcaption></figure>
+      <button type="button" class="rv-lb-nav rv-lb-next" aria-label="Foto siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+  </section>
+
+  <!-- Acceso / registro (interfaz de demostración) -->
+  <section class="win win--olive au" id="win-cuenta" role="dialog" aria-modal="true" aria-labelledby="t-cuenta" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Tu cuenta Da Enzo</span><h2 class="win-title" id="t-cuenta">Acceder</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar acceso"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"><div class="au-body"></div></div>
+  </section>
+
+  <!-- Aviso de inicio de sesión en la pantalla principal -->
+    <div class="lp lp--home" id="homeLogin" role="dialog" aria-labelledby="homeLpTitle" aria-describedby="homeLpSub" hidden>
+    <button type="button" class="lp-x" aria-label="Cerrar aviso de inicio de sesión"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    <div class="lp-head">
+      <img class="lp-logo" src="assets/logo-da-enzo.png" width="447" height="447" alt="">
+      <div><p class="lp-title" id="homeLpTitle">Bienvenido a Da Enzo</p><p class="lp-sub" id="homeLpSub">Inicia sesión para guardar tus pedidos y publicar reseñas.</p></div>
+    </div>
+    <button type="button" class="lp-google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.94l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg><span>Continuar con Google</span></button>
+    <button type="button" class="lp-mail">Prefiero usar mi correo</button>
+    <p class="lp-msg" role="status" hidden>El acceso con Google aún no está conectado en esta demostración, así que no se ha iniciado sesión. Cuando se configure, al pulsar «Continuar» la cuenta se creará automáticamente.</p>
+  </div>
+
+  <!-- Botón flotante «Ver mi pedido» (aparece tras confirmar un pedido · js/order/order-modals.js) -->
+  <button type="button" class="ab-order od-placed" id="odPlaced" hidden>
+    <span class="ab-order-grip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    <span class="od-waiter-txt"><span class="ab-order-txt">Ver mi pedido</span><span class="od-table" data-placed-total></span></span>
+    <span class="arw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg></span>
+  </button>
+
+  <!-- Aviso honesto: las vistas internas se construyen en la fase 2 -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</main>
+
+<!-- B) MENÚ COMPACTO + ENLACES PENDIENTES -->
+<script>
+(function(){
+  var burger = document.getElementById('burger'), menu = document.getElementById('menu');
+  function set(open){
+    menu.classList.toggle('open', open);
+    burger.setAttribute('aria-expanded', String(open));
+    burger.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+    if (open) { var first = menu.querySelector('a'); first && first.focus({preventScroll:true}); }
+  }
+  burger.addEventListener('click', function(e){ e.stopPropagation(); set(!menu.classList.contains('open')); });
+  document.addEventListener('click', function(e){
+    if (menu.classList.contains('open') && !menu.contains(e.target) && !burger.contains(e.target)) set(false);
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && menu.classList.contains('open')) { set(false); burger.focus(); }
+  });
+
+  /* PENDIENTE (fase 2): cada [data-pending] se conectará a su vista.
+     Por ahora no navega ni simula contenido: solo informa que la sección está en desarrollo.
+     Para conectar una vista, registre un manejador en DaEnzo.routes['#hash']. */
+  window.DaEnzo = window.DaEnzo || { routes:{} };
+  var toast = document.getElementById('toast'), tTimer;
+  function showToast(html, ms){
+    toast.innerHTML = html;
+    toast.classList.add('show');
+    clearTimeout(tTimer);
+    tTimer = setTimeout(function(){ toast.classList.remove('show'); }, ms || 2600);
+  }
+  function notify(name){ showToast('<b>' + name + '</b> · disponible en la próxima fase'); }
+  /* Aviso reutilizable por otras vistas (texto plano) */
+  DaEnzo.toast = function(text){ var d = document.createElement('div'); d.textContent = text; showToast(d.innerHTML, 3400); };
+  document.querySelectorAll('[data-pending]').forEach(function(a){
+    a.addEventListener('click', function(e){
+      var route = DaEnzo.routes[a.getAttribute('href')];
+      e.preventDefault();
+      if (menu.contains(a)) set(false);
+      if (typeof route === 'function') return route(a);
+      notify(a.getAttribute('data-pending'));
+    });
+  });
+})();
+</script>
+
+<!-- D) FASE 2 — CONFIGURACIÓN CENTRAL + VENTANAS + HORARIO + PANEL SOCIAL
+     No toca el video: las ventanas viven en otra capa y el fondo sigue en su bucle. -->
+<script>
+/* =========================================================
+   CONFIGURACIÓN ÚNICA — editar aquí cualquier dato del negocio
+   ========================================================= */
+window.DAENZO_CONFIG = {
+  brand: 'Da Enzo Pizzería',
+  whatsapp: { display: '+58 414 375 1877', url: 'https://wa.me/584143751877' },
+  phone:    { display: '0274-2662881' },          // solo se muestra, sin enlace de llamada
+  address:  'Centro Comercial San Cristóbal, Av. Andrés Bello, Mérida, Venezuela',
+  mapsQuery:'HRHH+6MR, Av Andrés Bello, Mérida 5101, Mérida, Venezuela',
+  /* Punto exacto del local, tomado del enlace oficial https://maps.app.goo.gl/k9Swn3FWfuNSLo2a7 (ficha «Pizzería Da Enzo») */
+  mapsCoords:'8.5764174,-71.1720648',
+  mapsLink:'https://maps.app.goo.gl/k9Swn3FWfuNSLo2a7',
+  /* Pedidos a domicilio — API del futuro panel de control.
+     apiBase vacío = NO hay backend: el pedido no se envía a ningún sistema
+     (ver js/order/delivery-service.js y LEEME.md). Nunca poner aquí claves ni tokens. */
+  orders: {
+    apiBase: '',                         // p. ej. 'https://api.daenzo.com'
+    createPath: '/orders',               // POST  → { id, status, createdAt }
+    statusPath: '/orders/{id}/status',   // GET   → { status, updatedAt }
+    notifyPath: '/orders/{id}/notify',   // POST  → el servidor avisa a la pizzería (WhatsApp Business)
+    pollMs: 20000                        // consulta periódica del estado (o sustituir por tiempo real)
+  },
+  social: {
+    instagram: 'https://www.instagram.com/pizzeria.daenzo?srtk=enJwNGlqN2h0eGZ3',
+    facebook:  'https://www.facebook.com/share/1F4p4Vc2Ri/?mibextid=wwXIfr'
+  },
+  socialPanel: {
+    initialDelayMs: 3200,      // tras la secuencia de entrada
+    reappearMs:     120000,    // ~120 s después de que el panel se haya cerrado
+    autoHideMs:     12000,     // un panel abierto automáticamente se retira solo si no se usa
+    retryMs:        6000,      // si no es buen momento, se vuelve a evaluar más tarde
+    idleMs:         4000       // margen sin interacción antes de mostrarlo
+  },
+  /* HORARIO — minutos desde las 00:00, hora de Venezuela.
+     Día: 0 = domingo … 6 = sábado.
+     Valores: [ { open:'HH:MM', close:'HH:MM' } ]  → abierto en esos tramos
+              'closed'                           → cerrado todo el día (confirmado)
+              'pending'                          → horario por confirmar (no se infiere estado)
+     Un tramo con close <= open cruza la medianoche y continúa al día siguiente. */
+  timezone: 'America/Caracas',
+  hours: {
+    1: 'closed',                               // lunes   — no abren
+    2: 'closed',                               // martes  — no abren
+    3: [{ open:'17:00', close:'22:15' }],      // miércoles
+    4: [{ open:'17:00', close:'22:15' }],      // jueves
+    5: [{ open:'17:00', close:'22:15' }],      // viernes
+    6: [{ open:'12:30', close:'22:15' }],      // sábado
+    0: [{ open:'12:30', close:'22:15' }]       // domingo
+  },
+  policies: [
+    { id:'pedidos', tab:'Pedidos', title:'Política de pedidos', body:[
+      'Da Enzo Pizzería busca ofrecer una experiencia de pedido clara y sencilla. Antes de confirmar un pedido, el cliente debe revisar los productos seleccionados, las cantidades, los precios y los datos de entrega o recogida.',
+      'Una solicitud de pedido solo debe considerarse confirmada cuando el establecimiento haya establecido el procedimiento de confirmación correspondiente.',
+      'Si el cliente necesita corregir información o consultar el estado de una solicitud, podrá ponerse en contacto con la pizzería mediante los canales oficiales disponibles.',
+      'Los tiempos de preparación, la disponibilidad de los productos y las condiciones definitivas de confirmación deberán establecerse en la política final del establecimiento.' ]},
+    { id:'delivery', tab:'Delivery', title:'Política de entregas', body:[
+      'El servicio de delivery estará sujeto a la disponibilidad del establecimiento, la zona de cobertura, el horario de atención y las condiciones de entrega que establezca Da Enzo Pizzería.',
+      'El cliente deberá proporcionar una dirección y datos de contacto correctos para facilitar la entrega.',
+      'Los tiempos de entrega serán estimados y podrán variar según la demanda, las condiciones de circulación, el clima y otros factores operativos.',
+      'Antes de confirmar un pedido, el cliente deberá poder consultar los costes de entrega aplicables y cualquier condición relevante para su zona.',
+      'Las áreas de cobertura, los costes, los tiempos estimados y las condiciones definitivas deberán ser confirmados por el establecimiento antes de publicar esta política.' ]},
+    { id:'reembolsos', tab:'Reembolsos', title:'Política de reembolsos', body:[
+      'Si un cliente detecta un problema con un pedido, recibe un producto incorrecto o experimenta una incidencia relacionada con la entrega, podrá ponerse en contacto con Da Enzo Pizzería para comunicar lo sucedido.',
+      'Para facilitar la revisión, se podrá solicitar información relacionada con el pedido y, cuando corresponda, fotografías u otros datos que permitan comprender la incidencia.',
+      'Cada caso deberá evaluarse de acuerdo con las circunstancias, las condiciones que establezca el establecimiento y la normativa aplicable.',
+      'Los procedimientos de devolución, sustitución, compensación o reembolso, así como los plazos y las condiciones aplicables, deberán ser definidos y validados por el negocio antes de publicar esta política.' ]}
+  ],
+  draftLabel: 'Borrador provisional — pendiente de validación'
+};
+
+(function(){
+  'use strict';
+  var C = window.DAENZO_CONFIG;
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  /* ---------- 1. Datos → interfaz (una sola fuente) ---------- */
+  var BIND = {
+    whatsappUrl: C.whatsapp.url, whatsappDisplay: C.whatsapp.display,
+    phoneDisplay: C.phone.display,
+    address: C.address, mapsQuery: C.mapsQuery,
+    directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(C.mapsCoords),
+    instagram: C.social.instagram, facebook: C.social.facebook
+  };
+  $$('[data-bind-href]').forEach(function(el){ el.href = BIND[el.getAttribute('data-bind-href')]; });
+  $$('[data-bind-text]').forEach(function(el){ el.textContent = BIND[el.getAttribute('data-bind-text')]; });
+
+  /* ---------- 2. Gestor de ventanas (máximo una abierta) ---------- */
+  var scrim = $('#scrim'), heroInner = $('.hero-inner'), toast = $('#toast');
+  var wins = {};
+  $$('.win').forEach(function(w){ w.removeAttribute('hidden'); w.setAttribute('aria-hidden','true'); w.inert = true; wins[w.id.replace('win-','')] = w; });
+  var current = null, returnFocus = null, hooks = {};
+  var FOCUSABLE = 'a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+  function openWin(name, opener){
+    var w = wins[name]; if (!w) return;
+    if (current === w) { $('.win-x', w).focus(); return; }
+    if (current) closeWin({ keepScrim:true, silent:true });   // relevo suave: una sale mientras la otra entra
+    else returnFocus = opener || document.activeElement;
+    current = w;
+    w.inert = false; w.setAttribute('aria-hidden','false');
+    hooks[name] && hooks[name]();
+    // doble rAF: garantiza que la transición de entrada se ejecute
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      if (current !== w) return;
+      w.classList.add('open');
+      $('.win-x', w).focus({ preventScroll:true });     // solo es enfocable una vez visible
+    }); });
+    scrim.classList.add('on');
+    document.querySelector('.hero').classList.add('has-win');
+    $$('[href="#' + name + '"]').forEach(function(a){ a.setAttribute('aria-current','true'); });
+    heroInner.inert = true; toast.inert = true;
+    Social.onWindowOpen();
+  }
+
+  function closeWin(opts){
+    opts = opts || {};
+    var w = current; if (!w) return;
+    w.classList.remove('open');
+    w.setAttribute('aria-hidden','true'); w.inert = true;
+    $$('[aria-current="true"]').forEach(function(a){ a.removeAttribute('aria-current'); });
+    current = null;
+    if (opts.keepScrim) return;
+    scrim.classList.remove('on');
+    document.querySelector('.hero').classList.remove('has-win');
+    heroInner.inert = false; toast.inert = false;
+    if (!opts.silent && returnFocus && document.contains(returnFocus) && returnFocus.offsetParent !== null) returnFocus.focus({ preventScroll:true });
+    else if (!opts.silent) { var b = $('#burger'); if (b && b.offsetParent) b.focus({ preventScroll:true }); }
+    returnFocus = null;
+    Social.onWindowClose();
+  }
+
+  $$('[data-close]').forEach(function(b){ b.addEventListener('click', function(){ closeWin(); }); });
+  scrim.addEventListener('click', function(){ closeWin(); });
+
+  // fase de captura: se evalúa antes que el script del menú (que cierra el menú con Escape)
+  window.addEventListener('keydown', function(e){
+    var menu = $('#menu');
+    if (e.key === 'Escape') {
+      if (menu && menu.classList.contains('open')) return;     // lo resuelve el script del menú
+      if (current) {
+        e.preventDefault();
+        if (DaEnzo.onEscape && DaEnzo.onEscape()) return;     // p. ej. cerrar primero una foto ampliada
+        closeWin(); return;
+      }
+      if (Social.isOpen()) { Social.close(true); Social.focusToggle(); }
+      return;
+    }
+    // Ciclo de foco dentro de la ventana abierta
+    if (e.key === 'Tab' && current && current.contains(document.activeElement)) {
+      var f = $$(FOCUSABLE, current).filter(function(el){ return el.offsetParent !== null; });
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }, true);
+
+  // Conecta la navegación existente (escritorio y menú compacto) mediante sus rutas
+  window.DaEnzo = window.DaEnzo || { routes:{} };
+  ['contacto','horarios','ubicacion','privacidad'].forEach(function(n){
+    DaEnzo.routes['#' + n] = function(a){ openWin(n, a); };
+  });
+  DaEnzo.openWindow = openWin; DaEnzo.closeWindow = closeWin;
+
+  /* ---------- 3. Horario y estado en tiempo real ---------- */
+  var DAY_NAMES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var WD = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+  var fmtParts = new Intl.DateTimeFormat('en-US', { timeZone:C.timezone, weekday:'short', hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23' });
+
+  function toMin(hhmm){ var p = hhmm.split(':'); return (+p[0]) * 60 + (+p[1]); }
+  function fmtTime(min){
+    min = ((min % 1440) + 1440) % 1440;
+    var h = Math.floor(min / 60), m = min % 60, ap = h < 12 ? 'a. m.' : 'p. m.';
+    var h12 = h % 12 === 0 ? 12 : h % 12;
+    return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+  }
+  /* Hora actual en Venezuela, independiente del reloj/zona del visitante */
+  function nowVE(){
+    var o = {}; fmtParts.formatToParts(new Date()).forEach(function(p){ o[p.type] = p.value; });
+    return { day: WD[o.weekday], min: (+o.hour % 24) * 60 + (+o.minute), sec: +o.second };
+  }
+  /* Tramos absolutos de la semana en minutos [0, 10080), expandiendo los que cruzan medianoche */
+  function weekRanges(){
+    var r = [];
+    for (var d = 0; d < 7; d++){
+      var v = C.hours[d]; if (!Array.isArray(v)) continue;
+      v.forEach(function(t){
+        var o = toMin(t.open), c = toMin(t.close); if (c <= o) c += 1440;
+        r.push({ s: d * 1440 + o, e: d * 1440 + c, day: d });
+      });
+    }
+    return r;
+  }
+  function computeStatus(){
+    var n = nowVE(), t = n.day * 1440 + n.min, W = 10080, ranges = weekRanges(), cur = null;
+    ranges.forEach(function(r){
+      [r.s - W, r.s, r.s + W].forEach(function(s){ var e = s + (r.e - r.s); if (t >= s && t < e) cur = { s:s, e:e, day:r.day }; });
+    });
+    // próxima apertura
+    var next = null;
+    ranges.forEach(function(r){ [r.s, r.s + W].forEach(function(s){ if (s > t && (!next || s < next.s)) next = { s:s, day:r.day }; }); });
+    var today = C.hours[n.day];
+    var state = cur ? 'open' : (today === 'pending' ? 'pending' : 'closed');
+    var nextChangeMin = cur ? cur.e - t : (next ? next.s - t : null);
+    return { now:n, t:t, state:state, cur:cur, next:next, msToChange: nextChangeMin == null ? null : nextChangeMin * 60000 - n.sec * 1000 };
+  }
+  function dayWord(fromDay, toAbs, nowAbs){
+    var diff = Math.floor(toAbs / 1440) - Math.floor(nowAbs / 1440);
+    if (diff === 0) return 'hoy';
+    if (diff === 1) return 'mañana';
+    return 'el ' + DAY_NAMES[((Math.floor(toAbs / 1440) % 7) + 7) % 7].toLowerCase();
+  }
+
+  var statusEl = $('#status'), statusNext = $('#statusNext'), daysEl = $('#days'), statusTimer = null;
+  var ICON = {
+    open:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8.5 3 3 6-7"/></svg>',
+    closed: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="5.8"/><path d="M4 12 12 4"/></svg>',
+    pending:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="5.8"/><path d="M8 5v3.4l2 1.2"/></svg>'
+  };
+  var LABEL = { open:'Abierto', closed:'Cerrado', pending:'Horario por confirmar' };
+
+  function renderDays(todayIdx){
+    var order = [1,2,3,4,5,6,0], html = '';
+    order.forEach(function(d){
+      var v = C.hours[d], txt, off = false;
+      if (Array.isArray(v)) txt = v.map(function(t){ return fmtTime(toMin(t.open)) + ' – ' + fmtTime(toMin(t.close)); }).join(' · ');
+      else if (v === 'closed') { txt = 'Cerrado'; off = true; }
+      else { txt = 'Por confirmar'; off = true; }
+      html += '<li' + (d === todayIdx ? ' class="today" aria-current="date"' : '') + '><span class="d">' + DAY_NAMES[d] + '</span><span class="h' + (off ? ' off' : '') + '">' + txt + '</span></li>';
+    });
+    daysEl.innerHTML = html;
+  }
+
+  function updateStatus(){
+    var s = computeStatus();
+    statusEl.dataset.state = s.state;
+    statusEl.innerHTML = (s.state === 'open' ? '<span class="status-dot" aria-hidden="true"></span>' : '') + ICON[s.state] + '<span class="status-text">' + LABEL[s.state] + '</span>';
+    if (s.state === 'open') statusNext.textContent = 'Cierra ' + dayWord(s.now.day, s.cur.e, s.t) + ' a las ' + fmtTime(s.cur.e % 1440);
+    else if (s.next) statusNext.textContent = 'Abre ' + dayWord(s.now.day, s.next.s, s.t) + ' a las ' + fmtTime(s.next.s % 1440);
+    else statusNext.textContent = '';
+    renderDays(s.now.day);
+    // Un único temporizador hasta el próximo cambio (apertura, cierre o medianoche para refrescar "Hoy")
+    clearTimeout(statusTimer);
+    var toMidnight = (1440 - s.now.min) * 60000 - s.now.sec * 1000;
+    var wait = Math.min(s.msToChange == null ? Infinity : s.msToChange, toMidnight, 6 * 3600000) + 500;
+    statusTimer = setTimeout(updateStatus, Math.max(1000, wait));
+    return s;
+  }
+  hooks.horarios = updateStatus;
+  // tras suspender el equipo o volver a la pestaña, los temporizadores pueden haberse retrasado
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) updateStatus(); });
+  updateStatus();
+  DaEnzo.computeStatus = computeStatus;
+
+  /* ---------- 4. Mapa: imagen estática (assets/mapa-da-enzo.jpg) + enlace a Google Maps ---------- */
+
+  /* ---------- 5. Políticas: pestañas Pedidos / Delivery / Reembolsos ---------- */
+  var tabsEl = $('#tabs'), policyEl = $('#policy'), activePolicy = null;
+  var DRAFT_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 2.2 14.3 13H1.7L8 2.2Z"/><path d="M8 6.4v3M8 11.2v.1"/></svg>';
+  C.policies.forEach(function(p, i){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'tab'; b.id = 'tab-' + p.id; b.textContent = p.tab;
+    b.setAttribute('role','tab'); b.setAttribute('aria-controls','policy');
+    b.addEventListener('click', function(){ showPolicy(p.id, true); });
+    tabsEl.appendChild(b);
+  });
+  tabsEl.addEventListener('keydown', function(e){
+    var tabs = $$('.tab', tabsEl), i = tabs.indexOf(document.activeElement); if (i < 0) return;
+    var j = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : null;
+    if (j === null) return; e.preventDefault();
+    j = (j + tabs.length) % tabs.length; tabs[j].focus(); showPolicy(C.policies[j].id, true);
+  });
+  function paintPolicy(p){
+    policyEl.innerHTML = '<p class="draft">' + DRAFT_ICON + C.draftLabel + '</p><h3>' + p.title + '</h3>' +
+      p.body.map(function(t){ return '<p>' + t + '</p>'; }).join('');
+    policyEl.setAttribute('aria-labelledby', 'tab-' + p.id);
+    policyEl.parentNode.scrollTop = 0;
+  }
+  function showPolicy(id, animate){
+    if (id === activePolicy) return;
+    var p = C.policies.filter(function(x){ return x.id === id; })[0]; if (!p) return;
+    activePolicy = id;
+    $$('.tab', tabsEl).forEach(function(b){ var on = b.id === 'tab-' + id; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+    if (!animate) return paintPolicy(p);
+    policyEl.classList.add('swap');
+    setTimeout(function(){ paintPolicy(p); requestAnimationFrame(function(){ policyEl.classList.remove('swap'); }); }, 160);
+  }
+  showPolicy(C.policies[0].id, false);
+
+  /* ---------- 6. Panel de redes sociales ---------- */
+  var Social = (function(){
+    /* Cualquier [data-social-toggle] (logo de inicio y logo de Reseñas) controla el mismo panel */
+    var P = C.socialPanel, panel = $('#social'), toggles = $$('[data-social-toggle]'), closeBtn = $('#socialClose');
+    function visibleToggle(){ return toggles.filter(function(t){ return t.offsetParent !== null && getComputedStyle(t).visibility !== 'hidden'; })[0] || toggles[0]; }
+    var open = false, auto = false, timer = null, hideTimer = null, lastInput = 0, lastKey = 0, hovering = false;
+
+    panel.inert = true; panel.setAttribute('aria-hidden','true');
+
+    function setOpen(v, byAuto){
+      open = v; auto = !!(v && byAuto);
+      panel.classList.toggle('open', v);
+      panel.inert = !v; panel.setAttribute('aria-hidden', String(!v));
+      toggles.forEach(function(t){
+        t.setAttribute('aria-expanded', String(v));
+        t.setAttribute('aria-label', 'Da Enzo Pizzería — ' + (v ? 'ocultar' : 'mostrar') + ' redes sociales');
+      });
+      clearTimeout(hideTimer);
+      if (auto) hideTimer = setTimeout(function(){ if (auto && !hovering && !panel.contains(document.activeElement)) close(false); }, P.autoHideMs);
+    }
+    function close(byUser){
+      if (!open) return;
+      setOpen(false);
+      schedule(P.reappearMs);                      // el contador empieza cuando el panel desaparece
+    }
+    function schedule(ms){ clearTimeout(timer); timer = setTimeout(tryAuto, ms); }   // un solo temporizador, nunca duplicado
+
+    function goodMoment(){
+      if (document.hidden) return false;
+      if (current) return false;                                         // ventana informativa abierta
+      var menu = $('#menu'); if (menu && menu.classList.contains('open')) return false;
+      if (Date.now() - lastInput < P.idleMs) return false;              // interacción en curso
+      if (Date.now() - lastKey < 15000) return false;                    // usuario navegando con teclado
+      var a = document.activeElement;
+      if (a && a !== document.body && a.matches && (a.matches('input,textarea,select,iframe') || (a.matches('a,button,[tabindex]') && a.matches(':focus-visible')))) return false;   // foco de teclado en un control
+      return true;
+    }
+    function tryAuto(){
+      timer = null;
+      if (open) return;
+      if (goodMoment()) setOpen(true, true);
+      else if (!document.hidden) schedule(P.retryMs);                    // aplazar
+      // si la pestaña está oculta, se reevalúa al volver (ver visibilitychange)
+    }
+
+    toggles.forEach(function(t){ t.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (open) { close(true); return; }
+      if (current) closeWin({ silent:true });
+      clearTimeout(timer); timer = null;
+      setOpen(true, false);
+    }); });
+    closeBtn.addEventListener('click', function(){ close(true); visibleToggle().focus({ preventScroll:true }); });
+    panel.addEventListener('pointerenter', function(){ hovering = true; });
+    panel.addEventListener('pointerleave', function(){ hovering = false; });
+    panel.addEventListener('focusin', function(){ auto = false; clearTimeout(hideTimer); });
+
+    ['pointerdown','wheel','touchstart'].forEach(function(t){ document.addEventListener(t, function(){ lastInput = Date.now(); }, { passive:true, capture:true }); });
+    document.addEventListener('keydown', function(e){ lastInput = lastKey = Date.now(); }, true);
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) return;
+      if (!open && !timer) schedule(1500);                               // reevaluar con un margen al volver
+    });
+
+    // Primera aparición tras una breve demora
+    schedule(P.initialDelayMs);
+
+    return {
+      isOpen: function(){ return open; },
+      focusToggle: function(){ visibleToggle().focus({ preventScroll:true }); },
+      close: close,
+      onWindowOpen: function(){ if (open) { setOpen(false); schedule(P.reappearMs); } },
+      onWindowClose: function(){ if (!open && !timer) schedule(P.retryMs); }
+    };
+  })();
+})();
+</script>
+
+<!-- C) VIDEO DE FONDO — debe ir al final del body
+     Estado 1: daenzo-intro reproduce la secuencia completa una sola vez (0 → 9,0 s del original).
+     Estado 2: daenzo-loop (3,5 s) continúa exactamente en el fotograma siguiente y se repite con `loop`.
+               Su primer fotograma es el que sigue al último de la intro, y su final empalma con su inicio
+               mediante un fundido interno de 1 s horneado en el archivo, por lo que el bucle no tiene corte. -->
+<script>
+(function(){
+  var bg = document.getElementById('bg'),
+      intro = document.getElementById('vIntro'),
+      loop  = document.getElementById('vLoop');
+  if (!bg || !intro || !loop) return;
+
+  var reduced = document.documentElement.classList.contains('reduced');
+  var state = 'intro';          // 'intro' | 'loop' | 'fallback' | 'still'
+  bg.dataset.state = state;
+
+  function setState(s){ state = s; bg.dataset.state = s; }
+
+  function fallback(){
+    if (state === 'fallback') return;
+    setState('fallback');
+    bg.classList.add('is-fallback');
+    try { intro.pause(); loop.pause(); } catch(e){}
+  }
+
+  function tryPlay(v){
+    var p;
+    try { p = v.play(); } catch(e){ return Promise.reject(e); }
+    return p && p.then ? p : Promise.resolve();
+  }
+
+  /* Movimiento reducido: un único fotograma fijo, sin reproducción */
+  if (reduced){
+    intro.removeAttribute('autoplay');
+    try { intro.pause(); intro.currentTime = 0; } catch(e){}
+    loop.preload = 'none';
+    setState('still');
+    return;
+  }
+
+  /* El bucle no se descarga hasta que la intro ya está reproduciéndose */
+  loop.preload = 'none';
+  var loopPrimed = false;
+  function primeLoop(){
+    if (loopPrimed) return; loopPrimed = true;
+    loop.preload = 'auto';
+    loop.load();
+  }
+
+  function toLoop(){
+    if (state !== 'intro') return;
+    setState('loop');
+    tryPlay(loop).then(function(){
+      // ocultar la intro solo cuando el bucle ya pinta, para que nunca haya negro
+      var hide = function(){ bg.classList.add('is-looping'); setTimeout(function(){ intro.pause(); }, 600); };
+      if (loop.requestVideoFrameCallback) loop.requestVideoFrameCallback(hide); else hide();
+    }, fallback);
+  }
+
+  intro.addEventListener('playing', primeLoop, { once:true });
+  intro.addEventListener('ended', toLoop);
+  intro.addEventListener('error', fallback, true);   // fallo de las <source>
+  loop.addEventListener('error', function(){ if (state === 'loop') fallback(); }, true);
+
+  // Autoplay: algunos navegadores ignoran el atributo hasta llamar a play()
+  tryPlay(intro).catch(function(){
+    // Bloqueado (ahorro de batería / preferencias): fotograma real + reanudar al primer toque
+    fallback();
+    var resume = function(){
+      bg.classList.remove('is-fallback');
+      setState('intro');
+      tryPlay(intro).catch(fallback);
+    };
+    document.addEventListener('pointerdown', resume, { once:true });
+  });
+
+  // Ahorro de recursos: pausar en segundo plano o mientras otra vista (Reseñas) cubre el inicio,
+  // y reanudar en el mismo punto — nunca se reinicia la secuencia.
+  var covered = false;
+  function current(){ return state === 'loop' ? loop : state === 'intro' ? intro : null; }
+  function sync(){
+    var v = current(); if (!v) return;
+    if (document.hidden || covered) v.pause(); else tryPlay(v).catch(function(){});
+  }
+  document.addEventListener('visibilitychange', sync);
+  document.addEventListener('daenzo:hero', function(e){ covered = !e.detail.visible; sync(); });
+})();
+</script>
+<!-- E) FASE 3 — RESEÑAS (componentes independientes, cargados después de la configuración central) -->
+<script src="js/reviews/reviews-config.js"></script>
+<script src="js/reviews/demo-reviews.js"></script>
+<script src="js/reviews/utils.js"></script>
+<script src="js/reviews/hero-video.js"></script>
+<script src="js/reviews/star-rating.js"></script>
+<script src="js/reviews/review-list.js"></script>
+<script src="js/reviews/review-detail.js"></script>
+<script src="js/reviews/quick-phrases.js"></script>
+<script src="js/reviews/photo-picker.js"></script>
+<script src="js/reviews/review-form.js"></script>
+<script src="js/reviews/auth.js"></script>
+<script src="js/reviews/login-prompt.js"></script>
+<script src="js/reviews/reviews-view.js"></script>
+<!-- F) FASE 4 — SOBRE NOSOTROS -->
+<script src="js/about/about-data.js"></script>
+<script src="js/about/carousel.js"></script>
+<script src="js/about/floating-order.js"></script>
+<script src="js/about/about-view.js"></script>
+<!-- G) FASE 5 — ORDENAR MI PEDIDO -->
+<script src="js/order/menu-data.js"></script>
+<script src="js/order/cart.js"></script>
+<script src="js/order/table.js"></script>
+<script src="js/order/delivery-service.js"></script>
+<script src="js/order/order-modals.js"></script>
+<script src="js/order/delivery.js"></script>
+<script src="js/order/order-view.js"></script>
+</body>
+</html>
