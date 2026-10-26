@@ -749,7 +749,7 @@ html.anim.go .btn-primary{animation:ctaIn .85s var(--e-reveal) 1.32s both}   /* 
   <!-- Fondo: intro completa (una vez) → bucle de la pizza girando -->
   <div class="bg" id="bg" aria-hidden="true">
     <video class="bg-video bg-video--intro" id="vIntro"
-           muted playsinline autoplay preload="auto"
+           muted playsinline preload="auto"
            disablepictureinpicture disableremoteplayback
            poster="assets/poster-intro.jpg">
       <source src="assets/daenzo-intro.webm" type="video/webm">
@@ -1689,13 +1689,33 @@ window.DAENZO_CONFIG = {
     }, fallback);
   }
 
-  intro.addEventListener('playing', primeLoop, { once:true });
+  /* El bucle se descarga cuando la intro ya está entera en memoria (o casi terminada),
+     para no competir con ella por la conexión */
+  function checkPrime(){
+    if (loopPrimed) return;
+    var b = intro.buffered, d = intro.duration || 9;
+    if ((b.length && b.end(b.length - 1) >= d - 0.2) || intro.currentTime > d - 3) primeLoop();
+  }
+  intro.addEventListener('progress', checkPrime);
+  intro.addEventListener('timeupdate', checkPrime);
   intro.addEventListener('ended', toLoop);
   intro.addEventListener('error', fallback, true);   // fallo de las <source>
   loop.addEventListener('error', function(){ if (state === 'loop') fallback(); }, true);
 
-  // Autoplay: algunos navegadores ignoran el atributo hasta llamar a play()
-  tryPlay(intro).catch(function(){
+  /* Arranque sin tirones: mientras el video se descarga se ve el póster (su primer
+     fotograma real) y la reproducción empieza cuando hay datos suficientes para
+     no detenerse (canplaythrough). Margen de 6 s para navegadores que no avisan
+     (algunos iPhone solo descargan al llamar a play()). */
+  var started = false;
+  function start(){
+    if (started) return; started = true;
+    clearTimeout(startTimer);
+    tryPlay(intro).catch(blocked);
+  }
+  var startTimer = setTimeout(start, 6000);
+  if (intro.readyState >= 4) start();
+  else intro.addEventListener('canplaythrough', start, { once:true });
+  function blocked(){
     // Bloqueado (ahorro de batería / preferencias): fotograma real + reanudar al primer toque
     fallback();
     var resume = function(){
@@ -1704,14 +1724,14 @@ window.DAENZO_CONFIG = {
       tryPlay(intro).catch(fallback);
     };
     document.addEventListener('pointerdown', resume, { once:true });
-  });
+  }
 
   // Ahorro de recursos: pausar en segundo plano o mientras otra vista (Reseñas) cubre el inicio,
   // y reanudar en el mismo punto — nunca se reinicia la secuencia.
   var covered = false;
   function current(){ return state === 'loop' ? loop : state === 'intro' ? intro : null; }
   function sync(){
-    var v = current(); if (!v) return;
+    var v = current(); if (!v || (v === intro && !started)) return;
     if (document.hidden || covered) v.pause(); else tryPlay(v).catch(function(){});
   }
   document.addEventListener('visibilitychange', sync);
