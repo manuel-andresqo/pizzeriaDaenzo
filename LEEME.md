@@ -199,3 +199,9 @@ Archivo: `js/order/delivery-service.js`. Configuración: `DAENZO_CONFIG.orders` 
 3. `POST /orders/{id}/notify` (o automático al crear): el servidor avisa a la pizzería por WhatsApp Business Platform o un proveedor autorizado; credenciales solo en el servidor, registro del resultado, reintentos seguros sin duplicar.
 4. `GET /orders/{id}/status` con `Authorization: Bearer <accessToken>` (token por pedido: cambiar el id no da acceso a pedidos ajenos). Consulta cada `pollMs`; se puede sustituir por WebSocket/SSE. Estados: recibido, pendiente_confirmacion, pendiente_pago, confirmado, en_preparacion, en_camino, entregado, cancelado.
 5. Al recibir `en_camino` se muestra «¡Tu pedido está en camino!» en el seguimiento y en el resumen. En la demo nada cambia de estado solo: no hay temporizadores.
+
+## Actualización — rendimiento en teléfonos
+- Videos por dispositivo (`DaEnzoMedia` en el `<head>` de index.html): en teléfonos en vertical se usan versiones recortadas en vertical (`*-m.mp4/webm`, unas 3 veces más ligeras); en iPhone/iPad/Safari se usa MP4 (H.264, decodificado por hardware). En iPhone la intro arranca de inmediato (antes esperaba datos que Safari no descarga hasta pulsar play).
+- Reseñas: videos y pósters se asignan al entrar en la sección (ya no se descargan al abrir la web). Videos recomprimidos a 720p (de 7,4 MB a 1,8 MB la intro).
+- Primera carga en teléfono: de ~4,6 MB a ~1,3 MB. Fuentes de Google sin bloquear la página; logo optimizado (85 KB → 14 KB); imágenes de secciones y ventanas ocultas en diferido; platos de cada categoría del menú se crean al abrirla.
+- Táctil (`css/touch.css`): sin efectos :hover pegados (la X ya no queda girada), sin recuadros de foco al tocar (solo con teclado), sin retraso de toque, y sin desenfoques de fondo ni grano sobre el video (eran los que trababan el video y los toques en iPhone antiguos).

@@ -28,7 +28,7 @@
     root.innerHTML =
       '<div class="cs-stage">' + items.map(function(it, i){
         return '<figure class="cs-slide' + (i === 0 ? ' is-active' : '') + '" role="group" aria-roledescription="diapositiva" aria-label="' + (i + 1) + ' de ' + items.length + '"' + (i === 0 ? '' : ' aria-hidden="true"') + '>' +
-               '<img ' + (i < 2 ? 'src' : 'data-src') + '="' + esc(it.src) + '" alt="' + esc(it.alt) + '"' + (it.width ? ' width="' + it.width + '" height="' + it.height + '"' : '') + ' decoding="async"' + (i === 0 && !opts.eager ? ' loading="lazy"' : '') + '>' +
+               '<img ' + (i < 2 ? 'src' : 'data-src') + '="' + esc(it.src) + '" alt="' + esc(it.alt) + '"' + (it.width ? ' width="' + it.width + '" height="' + it.height + '"' : '') + ' decoding="async" loading="lazy">' +
                (opts.blurFill ? '<span class="cs-fill" aria-hidden="true" style="background-image:url(\'' + esc(it.src) + '\')"></span>' : '') +
                '</figure>';
       }).join('') + '</div>' +

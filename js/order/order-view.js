@@ -94,12 +94,15 @@
     return '<div class="od-acc reveal" data-cat="' + c.id + '">' +
       '<button type="button" class="od-acc-btn" aria-expanded="false" aria-controls="odp-' + c.id + '" data-acc="' + c.id + '">' + head +
       '<span class="od-acc-chev" aria-hidden="true">' + ICON.plus + '</span></button>' +
-      '<div class="od-acc-panel" id="odp-' + c.id + '" role="region" aria-label="' + esc(c.label) + '" inert><div class="od-acc-in">' + section(c) + '</div></div>' +
+      '<div class="od-acc-panel" id="odp-' + c.id + '" role="region" aria-label="' + esc(c.label) + '" inert><div class="od-acc-in"></div></div>' +
     '</div>';
   }
   function toggleAcc(id, force){
     var acc = content.querySelector('.od-acc[data-cat="' + id + '"]'); if (!acc) return false;
     var btn = acc.querySelector('[data-acc]'), panel = acc.querySelector('.od-acc-panel');
+    /* Los platos de cada categoría se construyen la primera vez que se abre (página más ligera) */
+    var inner = panel.querySelector('.od-acc-in');
+    if (!inner.firstChild){ var c = M.categories.filter(function(x){ return x.id === id; })[0]; inner.innerHTML = section(c); }
     var open = force !== undefined ? force : btn.getAttribute('aria-expanded') !== 'true';
     btn.setAttribute('aria-expanded', String(open));
     acc.classList.toggle('is-open', open);
@@ -118,7 +121,7 @@
         '<p class="od-hero-aside">' + esc(H.aside) + '</p>' +
         '<div class="od-hero-acts"><button type="button" class="oc-btn oc-btn--cream" data-jump="pizzas">Ver el menú ' + ICON.arrow + '</button><span class="od-table-chip" data-table></span></div>' +
       '</div>' +
-      '<figure class="od-hero-img"><img src="' + esc(H.image.src) + '" alt="' + esc(H.image.alt) + '" style="object-position:' + esc(H.image.pos) + '" fetchpriority="high"></figure>' +
+      '<figure class="od-hero-img"><img src="' + esc(H.image.src) + '" alt="' + esc(H.image.alt) + '" style="object-position:' + esc(H.image.pos) + '" loading="lazy" decoding="async"></figure>' +
     '</section>' +
     '<div class="od-main" id="odMain">' +
       '<div class="od-menu"><p class="ab-chapter od-menu-k reveal">Nuestro menú</p>' + M.categories.map(accordion).join('') +

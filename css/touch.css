@@ -1,0 +1,49 @@
+/* =========================================================
+   TELÉFONOS Y TABLETAS — rendimiento y toque
+   Se carga al final. Las clases las pone el script del <head>:
+     .touch       pantalla táctil (sin ratón)
+     .pointer-ui  la última interacción fue con el dedo o el ratón
+   ========================================================= */
+
+/* Sin destello gris al tocar y sin espera de doble toque */
+*{-webkit-tap-highlight-color:transparent}
+a,button,[role="button"],label,summary,input,select,textarea{touch-action:manipulation}
+
+/* El contorno de foco solo se muestra al navegar con teclado
+   (al tocar, Safari dejaba un recuadro alrededor del último botón pulsado) */
+.pointer-ui :focus,.pointer-ui :focus-visible{outline:none !important}
+.pointer-ui .win-x:focus,.pointer-ui .win-x:focus-visible{box-shadow:none}
+
+/* Videos verticales de teléfono: el encuadre ya viene recortado */
+.bg.is-m .bg-video--intro,.bg.is-m .bg-video--loop,.bg.is-m .bg-still{object-position:50% 50%}
+.rv-hero-media.is-m .rv-hero-img{object-position:50% 50%}
+@media (max-width:600px) and (orientation:portrait){ .hero{background-image:url("../assets/poster-intro-m.jpg")} }
+
+/* ---------- Rendimiento en táctil ----------
+   El desenfoque del fondo (backdrop-filter) y la mezcla de grano sobre un video
+   en reproducción obligan al teléfono a recalcular toda la pantalla en cada
+   fotograma: en iPhone antiguos eso traba el video y retrasa los toques.
+   Se sustituyen por fondos sólidos casi opacos (mismo aspecto). */
+.touch *,.touch *::before,.touch *::after{-webkit-backdrop-filter:none !important;backdrop-filter:none !important}
+.touch .veil::after,.touch .rv-formbox::before{display:none}
+.touch{--glass:rgba(20,24,13,.72);--glass-strong:rgba(22,28,14,.84)}
+.touch .rv-back,.touch .rv-account{background:rgba(22,28,14,.82)}
+.touch .ab-since{background:rgba(20,24,12,.66)}
+.touch .od-nav{background:rgba(244,241,230,.99)}
+.touch .toast{background:rgba(22,28,14,.96)}
+.touch .win--olive{background:rgba(33,44,20,.98)}
+.touch .lp{background:rgba(33,44,20,.99)}
+/* Animación de letras sin desenfoque (muy costosa en móviles) */
+@media (hover:none){ @keyframes abType{from{opacity:0;transform:translateY(.22em)}to{opacity:1;transform:none}} }
+.touch .cs-fill{filter:blur(10px)}
+
+/* ---------- Pantallas muy estrechas (iPhone SE, Android pequeños) ---------- */
+@media (max-width:360px){
+  .days li{padding:10px 6px;font-size:13.5px;gap:8px}
+  .days li.today .d::after{margin-left:4px;padding:2px 5px;font-size:9.5px;letter-spacing:.12em}
+}
+/* Encabezado de cada pedido en «Ver mi pedido»: el detalle pasa a su propia línea */
+.os-order-head{flex-wrap:wrap;row-gap:2px}
+@media (max-width:520px){
+  .os-order-head span{order:3;flex-basis:100%}
+}

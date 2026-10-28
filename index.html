@@ -11,10 +11,58 @@
      Si Google Fonts no carga, la pila de respaldo mantiene la página usable (font-display: swap). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Carga sin bloquear: con wifi lento el texto aparece de inmediato con la fuente de respaldo -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 
-<!-- El primer fotograma se precarga para que el fondo nunca aparezca negro -->
-<link rel="preload" as="image" href="assets/poster-intro.jpg">
+<!-- El primer fotograma se precarga para que el fondo nunca aparezca negro (versión vertical y ligera en teléfonos) -->
+<link rel="preload" as="image" href="assets/poster-intro-m.jpg" media="(max-width: 600px) and (orientation: portrait)">
+<link rel="preload" as="image" href="assets/poster-intro.jpg" media="not all and (max-width: 600px) and (orientation: portrait)">
+
+<script>
+/* =========================================================
+   0. RENDIMIENTO Y DISPOSITIVOS TÁCTILES (antes de pintar)
+   · DaEnzoMedia.src(): elige el video adecuado al dispositivo
+       - teléfonos en vertical → versión recortada en vertical (-m), ~3 veces más ligera
+       - iPhone / iPad / Safari → MP4 (H.264, decodificado por hardware: sin tirones)
+       - resto → WebM (VP9, más ligero) si el navegador lo admite
+   · Táctil: sin efectos :hover «pegados» tras tocar y sin recuadros de foco al tocar
+     (el contorno de foco solo aparece al usar el teclado).
+   ========================================================= */
+(function(){
+  var d = document.documentElement, ua = navigator.userAgent;
+  var apple = /iP(hone|od|ad)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+              (/Safari/.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Android|Firefox/.test(ua));
+  var mq = matchMedia('(max-width: 600px) and (orientation: portrait)');
+  var probe = document.createElement('video');
+  var webm = !apple && !!probe.canPlayType && probe.canPlayType('video/webm; codecs="vp9"') !== '';
+  window.DaEnzoMedia = {
+    mobile: function(){ return mq.matches; },
+    /* base: 'assets/daenzo-intro' · opts.mobile: false si no hay versión vertical */
+    src: function(base, opts){ var m = (!opts || opts.mobile !== false) && mq.matches; return base + (m ? '-m' : '') + (webm ? '.webm' : '.mp4'); },
+    poster: function(base, ext){ return base + (mq.matches ? '-m' : '') + (ext || '.jpg'); }
+  };
+  var touch = matchMedia('(hover: none)').matches;
+  if (touch) d.classList.add('touch');
+  /* Foco visible solo con teclado */
+  d.classList.add('pointer-ui');
+  addEventListener('keydown', function(e){ if (e.key === 'Tab' || e.key.indexOf('Arrow') === 0) d.classList.remove('pointer-ui'); }, true);
+  addEventListener('pointerdown', function(){ d.classList.add('pointer-ui'); }, true);
+  /* Táctil: los estilos :hover se desactivan (en iPhone se quedaban marcados tras tocar) */
+  if (touch) addEventListener('DOMContentLoaded', function(){
+    function strip(rules){
+      for (var i = rules.length - 1; i >= 0; i--){
+        var r = rules[i];
+        if (r.cssRules && !r.selectorText){ strip(r.cssRules); continue; }
+        if (!r.selectorText || r.selectorText.indexOf(':hover') < 0) continue;
+        var keep = r.selectorText.split(',').filter(function(x){ return x.indexOf(':hover') < 0; });
+        try { if (keep.length) r.selectorText = keep.join(','); else r.parentStyleSheet ? (r.parentRule ? r.parentRule.deleteRule(i) : r.parentStyleSheet.deleteRule(i)) : 0; } catch(e){}
+      }
+    }
+    for (var k = 0; k < document.styleSheets.length; k++){ try { strip(document.styleSheets[k].cssRules); } catch(e){} }
+  });
+})();
+</script>
 
 <style>
 /* =========================================================
@@ -709,6 +757,8 @@ html.anim.go .btn-primary{animation:ctaIn .85s var(--e-reveal) 1.32s both}   /* 
 <link rel="stylesheet" href="css/about.css">
 <!-- Fase 5: estilos de «Ordenar mi pedido» -->
 <link rel="stylesheet" href="css/order.css">
+<!-- Teléfonos y tabletas: rendimiento y toque (debe ir al final) -->
+<link rel="stylesheet" href="css/touch.css">
 
 <!-- A) ENTRADA: se arma de forma síncrona para evitar un destello sin animar -->
 <script>
@@ -748,22 +798,25 @@ html.anim.go .btn-primary{animation:ctaIn .85s var(--e-reveal) 1.32s both}   /* 
 
   <!-- Fondo: intro completa (una vez) → bucle de la pizza girando -->
   <div class="bg" id="bg" aria-hidden="true">
+    <!-- El archivo se elige al cargar (DaEnzoMedia): vertical y ligero en teléfonos, MP4 en iPhone -->
     <video class="bg-video bg-video--intro" id="vIntro"
            muted playsinline preload="auto"
-           disablepictureinpicture disableremoteplayback
-           poster="assets/poster-intro.jpg">
-      <source src="assets/daenzo-intro.webm" type="video/webm">
-      <source src="assets/daenzo-intro.mp4" type="video/mp4">
-    </video>
+           disablepictureinpicture disableremoteplayback></video>
     <video class="bg-video bg-video--loop" id="vLoop"
            muted playsinline loop preload="none"
-           disablepictureinpicture disableremoteplayback>
-      <source src="assets/daenzo-loop.webm" type="video/webm">
-      <source src="assets/daenzo-loop.mp4" type="video/mp4">
-    </video>
-    <!-- Alternativa si el navegador bloquea la reproducción: fotograma real del video -->
-    <img class="bg-still" id="bgStill" src="assets/poster-fallback.jpg" alt="" decoding="async">
+           disablepictureinpicture disableremoteplayback></video>
+    <!-- Alternativa si el navegador bloquea la reproducción: fotograma real del video (solo se descarga si hace falta) -->
+    <img class="bg-still" id="bgStill" alt="" decoding="async">
   </div>
+  <script>
+  (function(){
+    var D = window.DaEnzoMedia, m = D.mobile(), i = document.getElementById('vIntro'), l = document.getElementById('vLoop');
+    document.getElementById('bg').classList.toggle('is-m', m);
+    i.poster = D.poster('assets/poster-intro');
+    i.src = D.src('assets/daenzo-intro');
+    l.src = D.src('assets/daenzo-loop');
+  })();
+  </script>
   <div class="veil" aria-hidden="true"></div>
 
   <!-- Navegación superior -->
@@ -907,7 +960,7 @@ html.anim.go .btn-primary{animation:ctaIn .85s var(--e-reveal) 1.32s both}   /* 
       <!-- El mapa completo es el enlace de «Cómo llegar»; la dirección va dentro del recuadro -->
       <div class="map" id="map">
         <!-- Imagen del mapa de Google (captura de la zona); el recuadro completo abre la ruta en Google Maps -->
-        <img class="map-img" src="assets/mapa-da-enzo.jpg" width="763" height="406" alt="" decoding="async">
+        <img class="map-img" data-src="assets/mapa-da-enzo.jpg" width="763" height="406" alt="" decoding="async">
         <a class="map-hit" data-bind-href="directionsUrl" target="_blank" rel="noopener noreferrer" aria-label="Cómo llegar a Da Enzo Pizzería: abre la ruta en Google Maps (pestaña nueva)"></a>
         <div class="map-card" aria-hidden="true">
           <span class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
@@ -957,16 +1010,11 @@ html.anim.go .btn-primary{animation:ctaIn .85s var(--e-reveal) 1.32s both}   /* 
       <div class="rv-hero">
         <!-- Video: acercamiento a las pizzas (una vez) → bucle con la cámara quieta y solo el humo en movimiento -->
         <div class="rv-hero-media" id="rvHeroMedia" aria-hidden="true">
+          <!-- Archivos y pósters se asignan al entrar en Reseñas (no se descargan al abrir la web) -->
           <video class="rv-hero-img rv-hero-video rv-hero-video--loop" muted loop playsinline preload="none"
-                 disablepictureinpicture disableremoteplayback poster="assets/resenas/resenas-hold.jpg">
-            <source src="assets/resenas/resenas-loop.webm" type="video/webm">
-            <source src="assets/resenas/resenas-loop.mp4" type="video/mp4">
-          </video>
+                 disablepictureinpicture disableremoteplayback data-base="assets/resenas/resenas-loop" data-poster="assets/resenas/resenas-hold"></video>
           <video class="rv-hero-img rv-hero-video rv-hero-video--intro" muted playsinline preload="none"
-                 disablepictureinpicture disableremoteplayback poster="assets/resenas/resenas-poster.jpg">
-            <source src="assets/resenas/resenas-intro.webm" type="video/webm">
-            <source src="assets/resenas/resenas-intro.mp4" type="video/mp4">
-          </video>
+                 disablepictureinpicture disableremoteplayback data-base="assets/resenas/resenas-intro" data-poster="assets/resenas/resenas-poster"></video>
         </div>
         <div class="rv-hero-txt">
           <p class="rv-eyebrow">Reseñas</p>
@@ -1363,6 +1411,7 @@ window.DAENZO_CONFIG = {
     else returnFocus = opener || document.activeElement;
     current = w;
     w.inert = false; w.setAttribute('aria-hidden','false');
+    $$('img[data-src]', w).forEach(function(i){ i.src = i.getAttribute('data-src'); i.removeAttribute('data-src'); });   // imágenes de la ventana: solo al abrirla
     hooks[name] && hooks[name]();
     // doble rAF: garantiza que la transición de entrada se ejecute
     requestAnimationFrame(function(){ requestAnimationFrame(function(){
@@ -1650,6 +1699,8 @@ window.DAENZO_CONFIG = {
 
   function fallback(){
     if (state === 'fallback') return;
+    var still = document.getElementById('bgStill');
+    if (!still.src) still.src = window.DaEnzoMedia.poster('assets/poster-fallback');
     setState('fallback');
     bg.classList.add('is-fallback');
     try { intro.pause(); loop.pause(); } catch(e){}
@@ -1712,8 +1763,10 @@ window.DAENZO_CONFIG = {
     clearTimeout(startTimer);
     tryPlay(intro).catch(blocked);
   }
-  var startTimer = setTimeout(start, 6000);
-  if (intro.readyState >= 4) start();
+  var startTimer = setTimeout(start, 2500);
+  var ua = navigator.userAgent;
+  /* iPhone/iPad no descargan el video hasta llamar a play(): allí se arranca de inmediato */
+  if (intro.readyState >= 4 || /iP(hone|od|ad)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) start();
   else intro.addEventListener('canplaythrough', start, { once:true });
   function blocked(){
     // Bloqueado (ahorro de batería / preferencias): fotograma real + reanudar al primer toque

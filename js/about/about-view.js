@@ -31,7 +31,7 @@
 
   function heroHTML(h){
     return '<section class="ab-hero" aria-labelledby="abName">' +
-      '<img class="ab-hero-img" src="' + esc(h.image.src) + '" alt="' + esc(h.image.alt) + '" width="' + h.image.width + '" height="' + h.image.height + '" fetchpriority="high">' +
+      '<img class="ab-hero-img" src="' + esc(h.image.src) + '" alt="' + esc(h.image.alt) + '" width="' + h.image.width + '" height="' + h.image.height + '" loading="lazy" decoding="async">' +
       '<div class="ab-hero-in">' +
         '<div class="ab-hero-brand">' +
           '<h1 class="ab-name" id="abName" aria-label="' + esc(h.brand + ' ' + h.brandSub) + '">' +

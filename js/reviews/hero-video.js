@@ -22,7 +22,14 @@
       try { var p = v.play(); return p && p.then ? p : Promise.resolve(); }
       catch(e){ return Promise.reject(e); }
     }
-    function prime(v){ if (v.preload !== 'auto'){ v.preload = 'auto'; v.load(); } }
+    /* Los archivos se asignan la primera vez que se entra en Reseñas (no al abrir la web):
+       versión cuadrada y ligera en teléfonos, MP4 en iPhone (ver DaEnzoMedia en index.html) */
+    function ensure(){
+      if (box.dataset.ready) return; box.dataset.ready = '1';
+      var D = window.DaEnzoMedia; box.classList.toggle('is-m', D.mobile());
+      [intro, loop].forEach(function(v){ v.poster = D.poster(v.dataset.poster); v.src = D.src(v.dataset.base); });
+    }
+    function prime(v){ ensure(); if (v.preload !== 'auto'){ v.preload = 'auto'; v.load(); } }
 
     /* Fin del acercamiento → bucle de humo, con un fundido breve (misma posición de cámara) */
     function toLoop(){
@@ -41,6 +48,7 @@
       /* Entrar en Reseñas: el acercamiento siempre empieza desde el principio */
       start: function(){
         clearTimeout(hideTimer);
+        ensure();
         if (reduced){                    // movimiento reducido: imagen fija de la posición final
           box.classList.add('is-looping', 'is-still');
           return;
