@@ -59,7 +59,7 @@
         FIELDS.map(function(f){ return fieldHTML(f, d[f.id] || ''); }).join('') +
         '<p class="dl-form-err" role="alert" hidden></p>' +
         '<button type="submit" class="oc-btn oc-btn--primary dl-submit"><span>Confirmar dirección y continuar</span>' + ICON.arrow + '</button>' +
-        '<p class="dl-privacy">Usamos tu dirección y teléfono solo para este pedido. En esta demostración se guardan únicamente en esta pestaña del navegador y no se envían a ningún sistema.</p>' +
+        '<p class="dl-privacy">Usamos tu dirección y teléfono solo para este pedido. En esta demostración se guardan únicamente en este navegador (y en su panel de control de demostración) y no se envían a ningún servidor.</p>' +
       '</form>' +
       '<aside class="dl-wa" aria-labelledby="dlWaT">' +
         '<div><p class="dl-wa-t" id="dlWaT">¿Tienes alguna duda?</p><p>Contáctanos por WhatsApp y te ayudaremos con tu pedido.</p></div>' +
@@ -111,7 +111,8 @@
     DS.createOrder(order).then(function(res){
       var entry = { order: order, createdAt: order.createdAtClient, connected: !!res.connected,
                     server: res.connected ? { id: res.id, status: res.status, createdAt: res.createdAt, accessToken: res.accessToken } : null,
-                    status: res.connected ? res.status : 'pendiente_confirmacion', statusSource: res.connected ? 'server' : 'demo', waOpenedAt: null };
+                    status: res.connected ? res.status : 'pendiente_confirmacion', statusSource: res.connected ? 'server' : 'demo', waOpenedAt: null,
+                    demoId: res.demoPanel ? res.id : null };
       if (res.connected){ order.id = res.id; DS.notifyRestaurant(res.id, res.accessToken).then(function(n){ DS.store.update(order.clientRef, { notified: n.notified }); }).catch(function(){}); }
       DS.store.add(entry);
       pendingRef = null; sending = false;
@@ -136,13 +137,14 @@
      SEGUIMIENTO (pedido en proceso)
      ========================================================= */
   var tWin = $('#win-seguimiento'), tBody = $('.win-body', tWin), curRef = null;
-  var FLOW = ['pendiente_confirmacion','pendiente_pago','confirmado','en_preparacion','en_camino','entregado'];
+  var FLOW = ['pendiente_confirmacion','pendiente_pago','confirmado','en_preparacion','listo','en_camino','entregado'];
+  function live(e){ return e.statusSource === 'server' || e.statusSource === 'panel-demo'; }
   function entryOf(ref){ return DS.store.all().filter(function(e){ return e.order.clientRef === ref; })[0] || DS.store.last(); }
   function statusBlock(e){
-    var cur = e.status, idx = FLOW.indexOf(cur), demo = e.statusSource !== 'server';
+    var cur = e.status, idx = FLOW.indexOf(cur), demo = e.statusSource === 'demo';
     return '<div class="dl-status">' +
       '<div class="dl-status-head"><p class="op-label">Estado del pedido</p>' +
-        '<span class="dl-badge' + (demo ? ' dl-badge--demo' : '') + '">' + (demo ? 'Estado de demostración' : 'Actualizado por Da Enzo' + (e.statusAt ? ' · ' + time(e.statusAt) : '')) + '</span></div>' +
+        '<span class="dl-badge' + (demo ? ' dl-badge--demo' : '') + '">' + (demo ? 'Estado de demostración' : (e.statusSource === 'panel-demo' ? 'Actualizado desde el panel (demo)' : 'Actualizado por Da Enzo') + (e.statusAt ? ' · ' + time(e.statusAt) : '')) + '</span></div>' +
       '<p class="dl-status-now">' + esc(DS.status(cur).label) + '</p>' +
       (cur === 'cancelado' ? '<p class="dl-cancel">Este pedido fue cancelado. Escríbenos por WhatsApp si tienes dudas.</p>' :
       '<ol class="dl-steps">' + FLOW.map(function(id, i){
@@ -157,6 +159,7 @@
     pendiente_pago: 'Tu pedido está pendiente de pago. Te escribiremos por WhatsApp para completarlo.',
     confirmado: 'Da Enzo confirmó tu pedido. Te notificaremos cuando esté en camino.',
     en_preparacion: 'Tu pedido se está preparando en el horno de leña. Te notificaremos cuando esté en camino.',
+    listo: 'Tu pedido está listo y saldrá en breve hacia tu dirección.',
     en_camino: 'Tu pedido salió de Da Enzo y va hacia tu dirección.',
     entregado: 'Tu pedido fue entregado. ¡Buen provecho!',
     cancelado: 'Este pedido fue cancelado.'
@@ -164,14 +167,14 @@
   function renderTracking(){
     var e = entryOf(curRef); if (!e) { tBody.innerHTML = ''; return; }
     curRef = e.order.clientRef;
-    var onWay = e.status === 'en_camino' && e.statusSource === 'server';
+    var onWay = e.status === 'en_camino' && live(e);
     tBody.innerHTML =
       '<div class="dl-onway" role="status"' + (onWay ? '' : ' hidden') + '>' + MOTO + '<div><b>¡Tu pedido está en camino!</b><p>Da Enzo va de camino a tu dirección. Mantén tu teléfono disponible por si necesitamos contactarte.</p></div></div>' +
-      '<p class="oo-lead">' + (LEAD[e.statusSource === 'server' ? e.status : 'pendiente_confirmacion'] || LEAD.pendiente_confirmacion) + '</p>' +
+      '<p class="oo-lead">' + (LEAD[live(e) ? e.status : 'pendiente_confirmacion'] || LEAD.pendiente_confirmacion) + '</p>' +
       '<p class="oo-pay">' + CARD + '<span>Nos pondremos en contacto contigo por WhatsApp para confirmar los detalles del pago y completar el proceso del pedido.</span></p>' +
       statusBlock(e) +
       (e.connected ? '' :
-        '<p class="oo-demo">' + ICON.check + '<span><b>Demostración:</b> la recepción real de pedidos todavía no está conectada. Da Enzo aún no ha recibido este pedido y no hay seguimiento en tiempo real.</span></p>' +
+        '<p class="oo-demo">' + ICON.check + '<span><b>Demostración:</b> ' + (e.demoId ? 'tu pedido (' + esc(e.demoId) + ') llegó al panel de control de demostración de este navegador, y su estado se actualiza desde allí. La pizzería real todavía no recibe pedidos.' : 'la recepción real de pedidos todavía no está conectada. Da Enzo aún no ha recibido este pedido y no hay seguimiento en tiempo real.') + '</span></p>' +
         '<div class="dl-send">' +
           '<p><b>¿Quieres que Da Enzo lo reciba ahora?</b> Envíales el detalle por WhatsApp.</p>' +
           '<a class="dl-wa-btn" data-wa-order href="' + esc(DS.waLink(DS.orderText(e))) + '" target="_blank" rel="noopener noreferrer">' + WA_IC + '<span>' + (e.waOpenedAt ? 'Abrir WhatsApp de nuevo' : 'Abrir WhatsApp con mi pedido') + '</span><span class="sr-only"> (pestaña nueva)</span></a>' +
@@ -207,10 +210,10 @@
   /* ---------- Resumen de Delivery dentro de «Ver mi pedido» ---------- */
   function summaryHTML(list){
     return list.slice().reverse().map(function(e){
-      var o = e.order, d = o.delivery, a = o.amounts, demo = e.statusSource !== 'server';
+      var o = e.order, d = o.delivery, a = o.amounts, demo = e.statusSource === 'demo';
       return '<section class="os-order os-order--dl" aria-label="Pedido a domicilio">' +
-        '<header class="os-order-head"><b>A domicilio</b><span>' + (e.server && e.server.id ? 'Pedido n.º ' + esc(e.server.id) + ' · ' : 'Pedido de demostración · ') + time(e.createdAt) + '</span><strong>' + O.money(a.total) + '</strong></header>' +
-        '<p class="dl-status-line"><span class="dl-badge' + (demo ? ' dl-badge--demo' : '') + '">' + esc(DS.status(e.status).label) + (demo ? ' · demostración' : '') + '</span></p>' +
+        '<header class="os-order-head"><b>A domicilio</b><span>' + (e.server && e.server.id ? 'Pedido n.º ' + esc(e.server.id) + ' · ' : e.demoId ? 'Pedido ' + esc(e.demoId) + ' (demo) · ' : 'Pedido de demostración · ') + time(e.createdAt) + '</span><strong>' + O.money(a.total) + '</strong></header>' +
+        '<p class="dl-status-line"><span class="dl-badge' + (demo ? ' dl-badge--demo' : '') + '">' + esc(DS.status(e.status).label) + (demo ? ' · demostración' : e.statusSource === 'panel-demo' ? ' · panel demo' : '') + '</span></p>' +
         (e.status === 'en_camino' && !demo ? '<div class="dl-onway dl-onway--sm">' + MOTO + '<div><b>¡Tu pedido está en camino!</b></div></div>' : '') +
         '<ul class="os-lines">' + o.items.map(function(i, k){
           return O.summaryLine({ _sid:'d' + e.n + '-', img: i.img, pos: i.imgPos, category: i.categoryLabel, name: i.name, options: i.variant ? [i.variant] : [], extras: i.extras, qty: i.qty, unit: i.unitPrice, total: i.lineTotal }, k);
@@ -233,13 +236,14 @@
   /* =========================================================
      ESTADO REAL (preparado para el panel de control)
      Única vía para cambiar el estado: una actualización que venga del servidor
-     (watchStatus). Nada en la demo la llama: no hay temporizadores ni estados fingidos.
+     (watchStatus) o del panel de control de DEMOSTRACIÓN cuando el personal cambia el estado.
+     No hay temporizadores ni estados fingidos.
      ========================================================= */
   var watchers = {};
   function applyStatus(ref, upd){
-    if (!upd || upd.source !== 'server' || !DS.status(upd.status)) return;
-    var e = entryOf(ref); if (!e || e.status === upd.status) return;
-    DS.store.update(ref, { status: upd.status, statusSource: 'server', statusAt: upd.updatedAt || new Date().toISOString() });
+    if (!upd || (upd.source !== 'server' && upd.source !== 'panel-demo') || !DS.status(upd.status)) return;
+    var e = entryOf(ref); if (!e || (e.status === upd.status && e.statusSource === upd.source)) return;
+    DS.store.update(ref, { status: upd.status, statusSource: upd.source, statusAt: upd.updatedAt || new Date().toISOString() });
     if (tWin.classList.contains('open') && curRef === ref) renderTracking();
     if (O.summary.win.classList.contains('open')) O.summary.render();
     if (upd.status === 'en_camino') DE.toast('¡Tu pedido está en camino! Mantén tu teléfono disponible.');

@@ -44,6 +44,7 @@
     { id:'pendiente_pago',         label:'Pendiente de pago' },
     { id:'confirmado',             label:'Pedido confirmado' },
     { id:'en_preparacion',         label:'En preparación' },
+    { id:'listo',                  label:'Listo para entregar' },
     { id:'en_camino',              label:'En camino' },
     { id:'entregado',              label:'Entregado' },
     { id:'cancelado',              label:'Cancelado' }
@@ -139,9 +140,21 @@
     return fetch(url(path, id), { method: method, headers: h, body: body ? JSON.stringify(body) : undefined, credentials: 'omit' })
       .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
   }
-  /* Crea el pedido en el servidor. Sin backend → { connected:false } (no se envía nada). */
+  /* Pedido → modelo del panel (productos con precio base y extras: el panel recalcula el total) */
+  function panelInput(order){
+    return { ref: order.clientRef, source: 'web', mode: 'delivery', deliveryFee: order.amounts.deliveryFee,
+      delivery: order.delivery, customer: order.customer || null,
+      items: order.items.map(function(i){ return { productId: i.productId, name: i.name, category: i.category, categoryLabel: i.categoryLabel, variant: i.variant,
+        basePrice: i.unitPrice - i.extras.reduce(function(a, x){ return a + (x.price || 0); }, 0), extras: i.extras, qty: i.qty }; }) };
+  }
+  /* Crea el pedido en el servidor.
+     Sin backend: si existe el panel de DEMOSTRACIÓN (DaEnzoDB, mismo navegador) se registra
+     allí → { connected:false, demoPanel:true, id }. Si no, { connected:false } (no se envía nada). */
   function createOrder(order){
-    if (!connected()) return Promise.resolve({ connected: false });
+    if (!connected()){
+      if (window.DaEnzoDB) return window.DaEnzoDB.createOrder(panelInput(order)).then(function(o){ return { connected: false, demoPanel: true, id: o.id }; });
+      return Promise.resolve({ connected: false });
+    }
     var body = Object.assign({}, order, { items: order.items.map(function(i){ var c = Object.assign({}, i); delete c.img; delete c.imgPos; return c; }) });
     return request('POST', API.createPath, null, body).then(function(res){
       if (!res || !res.id) throw new Error('Respuesta sin identificador');
@@ -156,7 +169,15 @@
   }
   /* Estado real del pedido: consulta periódica (sustituible por WebSocket / SSE).
      Sin backend devuelve una función vacía: el estado de la demo nunca cambia solo. */
+  /* Estados del panel de demostración → estados que ve el cliente */
+  var FROM_PANEL = { nuevo:'pendiente_confirmacion', confirmado:'confirmado', en_preparacion:'en_preparacion', listo:'listo', en_camino:'en_camino', entregado:'entregado', finalizado:'entregado', cancelado:'cancelado' };
   function watchStatus(entry, cb){
+    if (!connected() && entry && entry.demoId && window.DaEnzoDB){
+      var DB = window.DaEnzoDB;
+      var check = function(d){ var o = d.orders.filter(function(x){ return x.id === entry.demoId; })[0]; if (o && o.status !== 'nuevo' && FROM_PANEL[o.status]) cb({ status: FROM_PANEL[o.status], updatedAt: o.updatedAt, source: 'panel-demo', payment: o.payment.status }); };
+      check(DB.peek());
+      return DB.subscribe(check);
+    }
     if (!connected() || !entry || !entry.server || !entry.server.id) return function(){};
     var stop = false, timer = null;
     function tick(){

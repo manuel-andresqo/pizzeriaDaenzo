@@ -205,3 +205,6 @@ Archivo: `js/order/delivery-service.js`. Configuración: `DAENZO_CONFIG.orders` 
 - Reseñas: videos y pósters se asignan al entrar en la sección (ya no se descargan al abrir la web). Videos recomprimidos a 720p (de 7,4 MB a 1,8 MB la intro).
 - Primera carga en teléfono: de ~4,6 MB a ~1,3 MB. Fuentes de Google sin bloquear la página; logo optimizado (85 KB → 14 KB); imágenes de secciones y ventanas ocultas en diferido; platos de cada categoría del menú se crean al abrirla.
 - Táctil (`css/touch.css`): sin efectos :hover pegados (la X ya no queda girada), sin recuadros de foco al tocar (solo con teclado), sin retraso de toque, y sin desenfoques de fondo ni grano sobre el video (eran los que trababan el video y los toques en iPhone antiguos).
+
+## Panel de control (demo) — `/admin/`
+Ver `admin/LEEME-PANEL.md`. La web registra pedidos (local y delivery) y solicitudes de mesa en la capa de datos de demostración `js/shared/demo-db.js`; el panel los gestiona y la web refleja los estados y los cambios del menú. Solo funciona dentro de un mismo navegador hasta que exista un backend.

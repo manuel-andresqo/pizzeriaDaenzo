@@ -1200,6 +1200,14 @@ html.anim.go .btn-primary{animation:ctaIn .85s var(--e-reveal) 1.32s both}   /* 
     <div class="win-body"></div>
   </section>
 
+  <!-- Solicitudes de mesa: mesero, cuenta, agua, cubiertos, ayuda (js/order/table-requests.js) -->
+  <section class="win win--ivory od-win od-tablereq" id="win-mesa" role="dialog" aria-modal="true" aria-labelledby="t-mesa" hidden>
+    <header class="win-head">
+      <div><span class="win-eyebrow">Mesa</span><h2 class="win-title" id="t-mesa">¿En qué te ayudamos?</h2></div>
+      <button class="win-x" type="button" data-close aria-label="Cerrar"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg></button>
+    </header>
+    <div class="win-body"></div>
+  </section>
   <!-- Delivery: datos de entrega y seguimiento (js/order/delivery.js) -->
   <section class="win win--ivory od-win od-delivery" id="win-entrega" role="dialog" aria-modal="true" aria-labelledby="t-entrega" hidden>
     <header class="win-head">
@@ -1811,12 +1819,15 @@ window.DAENZO_CONFIG = {
 <script src="js/about/floating-order.js"></script>
 <script src="js/about/about-view.js"></script>
 <!-- G) FASE 5 — ORDENAR MI PEDIDO -->
+<script src="js/shared/demo-db.js"></script>
 <script src="js/order/menu-data.js"></script>
+<script src="js/shared/catalog-sync.js"></script>
 <script src="js/order/cart.js"></script>
 <script src="js/order/table.js"></script>
 <script src="js/order/delivery-service.js"></script>
 <script src="js/order/order-modals.js"></script>
 <script src="js/order/delivery.js"></script>
+<script src="js/order/table-requests.js"></script>
 <script src="js/order/order-view.js"></script>
 </body>
 </html>

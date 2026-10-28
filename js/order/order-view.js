@@ -23,8 +23,8 @@
 
   /* ---------- Tarjetas ---------- */
   function cardHTML(p, i, tag){
-    var opts = hasOptions(p), img = p.images && p.images[0];
-    return '<article class="od-card reveal" style="--i:' + (i % 6) + '" data-id="' + p.id + '">' +
+    var opts = hasOptions(p), img = p.images && p.images[0], off = p.available === false;
+    return '<article class="od-card reveal' + (off ? ' is-off' : '') + '" style="--i:' + (i % 6) + '" data-id="' + p.id + '">' +
       (img ? '<span class="od-card-img"><img src="' + esc(img.src) + '" alt="' + esc(img.alt) + '" style="object-position:' + esc(img.pos) + '" width="820" height="820" loading="lazy" decoding="async"></span>' : '') +
       '<div class="od-card-body">' +
         '<span class="ab-dish-tag od-card-tag">' + esc(tag) + '</span>' +
@@ -32,15 +32,16 @@
         '<p class="od-card-short">' + esc(p.short) + '</p>' +
         '<div class="od-card-foot">' +
           '<span class="od-card-price">' + fromPrice(p) + '</span>' +
-          '<button type="button" class="od-card-open" data-open>' + (opts ? (p.category === 'pizzas' ? 'Personalizar' : 'Elegir') : 'Ver detalle') + '<span class="sr-only"> ' + esc(p.name) + '</span></button>' +
-          (!opts ? '<button type="button" class="odr-add od-card-quick" data-quick aria-label="Agregar ' + esc(p.name) + ' al carrito">' + ICON.plus + '</button>' : '') +
+          (off ? '<span class="od-card-off">No disponible hoy</span>' :
+          '<button type="button" class="od-card-open" data-open>' + (opts ? (p.category === 'pizzas' ? 'Personalizar' : 'Elegir') : 'Ver detalle') + '<span class="sr-only"> ' + esc(p.name) + '</span></button>') +
+          (!opts && !off ? '<button type="button" class="odr-add od-card-quick" data-quick aria-label="Agregar ' + esc(p.name) + ' al carrito">' + ICON.plus + '</button>' : '') +
         '</div>' +
       '</div>' +
     '</article>';
   }
   function drinkCard(p){
     var vs = p.variants || [];
-    return '<article class="od-dcard reveal" data-id="' + p.id + '">' +
+    return '<article class="od-dcard reveal' + (p.available === false ? ' is-off' : '') + '" data-id="' + p.id + '">' +
       '<div><b>' + esc(p.name) + '</b><span>' + esc(p.short || '') + (vs.length > 1 ? ' · ' + vs.map(function(v){ return v.label; }).join(' / ') : '') + '</span></div>' +
       '<span class="od-card-price">' + fromPrice(p) + '</span>' +
       '<button type="button" class="odr-add" data-' + (vs.length > 1 ? 'open' : 'quick') + ' aria-label="' + (vs.length > 1 ? 'Elegir presentación de ' : 'Agregar ') + esc(p.name) + '">' + ICON.plus + '</button>' +
@@ -142,6 +143,7 @@
     var card = e.target.closest('[data-id]'); if (!card || card.closest('.od-cart')) return;
     var id = card.dataset.id;
     if (e.target.closest('[data-quick]')) return O.quickAdd(id, null, e.target.closest('button'));
+    if (card.classList.contains('is-off')) return DE.toast(O.product(id).name + ' no está disponible en este momento.');
     if (e.target.closest('[data-open]') || card.classList.contains('od-card')){
       /* el plato elegido queda marcado con borde naranja, como en «Sobre nosotros» */
       content.querySelectorAll('.od-card.is-selected').forEach(function(x){ x.classList.remove('is-selected'); });
@@ -186,6 +188,17 @@
   cart.onChange(paintCart);
   paintCart();
 
+  /* El panel cambió precio, descripción o disponibilidad: se rehacen los platos ya construidos */
+  document.addEventListener('daenzo:catalog', function(){
+    content.querySelectorAll('.od-acc').forEach(function(acc){
+      var inner = acc.querySelector('.od-acc-in'); if (!inner || !inner.firstChild) return;
+      var c = M.categories.filter(function(x){ return x.id === acc.dataset.cat; })[0];
+      inner.innerHTML = section(c);
+      inner.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('is-in'); });
+    });
+    paintCart();
+  });
+
   view.querySelector('#odMbarCart').addEventListener('click', function(e){ O.cartWin.open(e.currentTarget); });
   view.querySelector('.od-continue--m').addEventListener('click', function(e){ O.review.open(e.currentTarget); });
   view.querySelector('#odMbarDrinks').addEventListener('click', function(e){ O.drinks.open(e.currentTarget); });
@@ -213,7 +226,8 @@
   content.querySelector('[data-table]').textContent = label;
   var waiterEl = view.querySelector('#odWaiter');
   var waiter = NS.FloatingOrder(waiterEl, view, function(){
-    DE.toast('La función para llamar al mesero estará disponible cuando conectemos el sistema del restaurante.');
+    if (O.tableRequests) O.tableRequests.open(waiterEl);
+    else DE.toast('La función para llamar al mesero estará disponible cuando conectemos el sistema del restaurante.');
   }, { storageKey: 'daenzo.waiterButton.pos',
         /* se mueve libremente y siempre queda por encima de todo; solo se aparta de la
            barra inferior del móvil y del botón «Ver mi pedido» para no taparlos */

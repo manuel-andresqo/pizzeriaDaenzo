@@ -766,3 +766,39 @@ body.in-order .od-placed{z-index:23}
   .oc-right .oc-acts button{min-height:40px;padding:0 11px;font-size:12.5px}
 }
 @media (max-width:760px){ .odr-feature--coffee .odr-photo figcaption{left:6px;right:6px;bottom:8px;padding:5px 8px;font-size:11px;text-align:center} }
+
+/* =========================================================
+   AJUSTES · panel de control (demo): disponibilidad y solicitudes de mesa
+   ========================================================= */
+.od-card.is-off .od-card-img img{filter:grayscale(.85) brightness(.9)}
+.od-card.is-off{opacity:.78}
+.od-card-off{flex:1 0 100%;order:3;padding:10px 12px;border-radius:999px;background:rgba(46,59,28,.08);color:var(--rv-ink-soft,#5b6150);text-align:center;font:600 11px/1.2 var(--f-ui);letter-spacing:.12em;text-transform:uppercase}
+.od-dcard.is-off,.odr-item.is-off{opacity:.5}
+.odr-item.is-off .odr-add,.od-dcard.is-off .odr-add{pointer-events:none}
+.oc-off{align-self:flex-start;padding:2px 8px;border-radius:999px;background:#b3401a;color:#fff;font:600 10px/1.4 var(--f-ui);letter-spacing:.08em;text-transform:uppercase}
+
+.od-tablereq{--win-w:560px}
+.tq-warn{margin:0 0 14px;padding:10px 14px;border-radius:12px;background:rgba(199,92,46,.1);color:#8f3212;font-size:13.5px;line-height:1.5}
+.tq-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tq-opt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:104px;padding:14px 16px;border-radius:18px;border:1px solid var(--rv-line,rgba(46,59,28,.14));background:var(--rv-card,#fbf9f2);color:var(--olive-700);cursor:pointer;text-align:left;transition:transform .3s var(--e-soft), box-shadow .3s, background-color .25s}
+.tq-opt svg{width:26px;height:26px;color:#c75c2e;margin-bottom:4px}
+.tq-opt b{font:500 17px/1.15 var(--f-display)}
+.tq-opt small{font-size:12px;color:var(--rv-ink-soft,#5b6150)}
+.tq-opt:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(60,45,20,.12)}
+.tq-opt:active{transform:scale(.98)}
+.tq-opt[data-req="cuenta"]{background:var(--olive-700);color:var(--cream-100);border-color:var(--olive-700)}
+.tq-opt[data-req="cuenta"] small{color:rgba(239,238,228,.75)}
+.tq-opt[data-req="cuenta"] svg{color:#f3c66f}
+.tq-opt.is-sent{opacity:.6;cursor:default}
+.tq-opt.is-sent small::before{content:"✓ "}
+.tq-opt:last-child:nth-child(odd){grid-column:1 / -1;min-height:76px}
+.tq-list{margin-top:18px}
+.tq-list ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.tq-list li{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:rgba(46,59,28,.05);font-size:13.5px}
+.tq-list li svg{width:20px;height:20px;color:#9a3f18}
+.tq-list li b{display:block;font-weight:600;color:var(--olive-700)}
+.tq-list li small{color:var(--rv-ink-soft,#5b6150)}
+.tq-list li.tq-atendida small{color:#2f6b2f}
+.tq-list li.tq-resuelta{opacity:.6}
+.tq-list time{font-size:12px;color:var(--rv-ink-soft,#5b6150);font-variant-numeric:tabular-nums}
+.tq-demo{margin-top:16px;background:rgba(46,59,28,.06);color:var(--rv-ink-soft,#5b6150)}

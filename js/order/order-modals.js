@@ -114,6 +114,7 @@
           '<button type="button" class="oc-thumb" data-edit aria-label="Ver o modificar ' + esc(p.name) + '">' + ((p.images || p.cartImage) ? '<img src="' + esc((p.images ? p.images[0] : p.cartImage).src) + '" alt="" loading="lazy" style="object-position:' + esc((p.images ? p.images[0] : p.cartImage).pos) + '">' : '<span>' + ICON.glass + '</span>') + '</button>' +
           '<div class="oc-info">' +
             '<button type="button" class="oc-name" data-edit>' + esc(p.name) + '</button>' +
+            (p.available === false ? '<span class="oc-off">No disponible</span>' : '') +
             (meta.length ? '<span class="oc-meta">' + esc(meta.join(' · ')) + '</span>' : '') +
             '<span class="oc-unit">' + O.money(unit) + ' c/u</span>' +
           '</div>' +
@@ -354,6 +355,7 @@
 
   function addCurrent(btn){
     var ex = Array.from(P.extras), name = P.p.name, editing = !!P.editKey;
+    if (P.p.available === false){ DE.toast(name + ' no está disponible en este momento.'); return; }
     if (editing) cart.replace(P.editKey, P.variantId, ex, P.qty);
     else cart.add(P.p.id, P.variantId, ex, P.qty);
     btn.classList.add('is-done');
@@ -372,6 +374,7 @@
     open: function(pid, opts){
       opts = opts || {};
       var p = O.product(pid); if (!p) return;
+      if (p.available === false && !opts.editKey){ DE.toast(p.name + ' no está disponible en este momento.'); return; }
       var l = opts.editKey ? cart.line(opts.editKey) : null;
       var v = O.variantOf(p, l ? l.variantId : null);
       if (P) clearInterval(P.timer);
@@ -386,7 +389,9 @@
 
   /* Agregar sin abrir el detalle (productos sin opciones) */
   O.quickAdd = function(pid, vid, btn){
-    var p = O.product(pid); cart.add(pid, vid || null, [], 1);
+    var p = O.product(pid);
+    if (p.available === false){ DE.toast(p.name + ' no está disponible en este momento.'); return; }
+    cart.add(pid, vid || null, [], 1);
     if (btn){ btn.classList.remove('is-added'); void btn.offsetWidth; btn.classList.add('is-added'); }
     DE.toast('¡Añadido a tu pedido! · ' + p.name + (vid && (p.variants || []).length > 1 ? ' (' + O.variantOf(p, vid).label + ')' : ''));
   };
@@ -405,8 +410,8 @@
       '<span class="odr-sign-word">' + 'COCTELES'.split('').map(function(c){ return '<span>' + c + '</span>'; }).join('') + '</span><span class="odr-sign-dots" aria-hidden="true">• • • • • •</span></div>';
   }
   function drinkRow(p){
-    var vs = p.variants || [], sel = dSel[p.id] || (vs[0] && vs[0].id);
-    return '<li class="odr-item" data-id="' + p.id + '">' +
+    var vs = p.variants || [], sel = dSel[p.id] || (vs[0] && vs[0].id), off = p.available === false;
+    return '<li class="odr-item' + (off ? ' is-off' : '') + '" data-id="' + p.id + '">' +
       '<div class="odr-item-t"><b>' + esc(p.name) + '</b><span>' + esc(p.short || '') + '</span>' +
       (vs.length > 1 ? '<div class="odr-vars" role="radiogroup" aria-label="Presentación de ' + esc(p.name) + '">' + vs.map(function(v){
         return '<button type="button" role="radio" class="odr-var" data-v="' + v.id + '" aria-checked="' + (v.id === sel) + '">' + esc(v.label) + '</button>';
@@ -433,6 +438,7 @@
     if (add){ var p = O.product(id); O.quickAdd(id, dSel[id] || (p.variants && p.variants[0].id), add); }
   });
   O.drinks = { open: function(opener){ renderDrinks(); dBody.scrollTop = 0; DE.openWindow('bebidas', opener); } };
+  document.addEventListener('daenzo:catalog', function(){ if (dWin.classList.contains('open')){ var y = dBody.scrollTop; renderDrinks(); dBody.scrollTop = y; } });
 
   /* =========================================================
      REVISIÓN · CONFIRMACIÓN · RESUMEN
@@ -442,7 +448,7 @@
     var R = M.recommendations, out = [], cats = ['bebidas','postres','pizzas'];
     var hasCat = function(c){ return cart.lines().some(function(l){ return O.product(l.productId).category === c; }); };
     cats.sort(function(a, b){ return hasCat(a) - hasCat(b); });
-    cats.forEach(function(c){ (R.byCategory[c] || []).forEach(function(id){ if (out.length < R.max && !cart.has(id) && out.indexOf(id) < 0 && out.filter(function(x){ return O.product(x).category === c; }).length < 1) out.push(id); }); });
+    cats.forEach(function(c){ (R.byCategory[c] || []).forEach(function(id){ if (out.length < R.max && O.product(id).available !== false && !cart.has(id) && out.indexOf(id) < 0 && out.filter(function(x){ return O.product(x).category === c; }).length < 1) out.push(id); }); });
     return out.map(O.product);
   }
   function compactLines(){
@@ -474,6 +480,8 @@
   });
   O.review = { open: function(opener){
     if (cart.isEmpty()){ DE.toast('Añade al menos un producto para continuar.'); return; }
+    var off = cart.lines().filter(function(l){ return O.product(l.productId).available === false; })[0];
+    if (off){ DE.toast(O.product(off.productId).name + ' ya no está disponible. Quítalo del carrito para continuar.'); return; }
     cart.markReviewed(); renderReview(); DE.openWindow('revision', opener);
   } };
 
@@ -492,6 +500,17 @@
   /* Cada pedido confirmado se AÑADE a la lista (no reemplaza a los anteriores).
      A los 5 minutos del último pedido la lista se borra y el botón desaparece.
      (Con backend: se borrará cuando el panel de la pizzería marque el pago.) */
+  /* Líneas del carrito → modelo del panel (precio base + extras: el panel recalcula el total) */
+  var lastPanel = null;
+  O.panelItems = function(){
+    return cart.lines().map(function(l){
+      var p = O.product(l.productId), v = O.variantOf(p, l.variantId);
+      return { productId: p.id, name: p.name, category: p.category, categoryLabel: O.category(p.category).label,
+               variant: v && (p.variants || []).length > 1 ? v.label : null,
+               basePrice: O.unitPrice(l.productId, l.variantId, []), qty: l.qty,
+               extras: (l.extras || []).map(function(x){ return { id: x, label: M.extras[x].label, price: M.extras[x].price }; }) };
+    });
+  };
   function snapshot(){
     loadPlaced();
     var t = cart.totals();
@@ -502,6 +521,13 @@
         return { name: p.name, category: O.category(p.category).label, options: O.lineMeta(l), extras: O.lineExtras(l), qty: l.qty,
                  unit: O.unitPrice(l.productId, l.variantId, l.extras), total: cart.lineTotal(l), img: im ? im.src : null, pos: im ? im.pos : null };
       }) });
+    /* Demo: el pedido también se registra en el panel de control de este navegador */
+    var snap = placed.orders[placed.orders.length - 1];
+    if (window.DaEnzoDB){
+      var sess = window.DaEnzoReviews && DaEnzoReviews.Auth && DaEnzoReviews.Auth.session();
+      lastPanel = DaEnzoDB.createOrder({ mode:'local', source:'web', table: snap.table, items: O.panelItems(), ref: 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                             customer: sess ? { name: sess.name } : null }).then(function(o){ snap.panelId = o.id; savePlaced(); });
+    }
     placed.expiresAt = Date.now() + TTL;
     savePlaced(); armExpiry();
     return placed.orders[placed.orders.length - 1];
@@ -541,7 +567,7 @@
       '<div class="oo-grid"><div>' +
         '<p class="oo-lead">Gracias por elegir Da Enzo. Tu pedido' + (order.n > 1 ? ' n.º ' + order.n : '') + ' ya está en proceso: <b>' + order.units + ' ' + (order.units === 1 ? 'producto' : 'productos') + '</b> por <b>' + O.money(order.total) + '</b>.</p>' +
         '<p class="oo-pay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg><span><b>Puedes pagar en caja</b> cuando termines de disfrutar tu pedido.</span></p>' +
-        '<p class="oo-demo">' + ICON.check + '<span><b>Demostración:</b> el pedido no se ha enviado a la cocina ni a ningún sistema.</span></p>' +
+        '<p class="oo-demo">' + ICON.check + '<span><b>Demostración:</b> ' + (window.DaEnzoDB ? 'el pedido llegó al panel de control de demostración de este navegador<span data-panel-id></span>. No se envía a una cocina real.' : 'el pedido no se ha enviado a la cocina ni a ningún sistema.') + '</span></p>' +
       '</div><img class="oo-logo" src="assets/logo-da-enzo.png" width="447" height="447" alt="Da Enzo Pizzería"></div>' +
       '<div class="oo-actions"><button type="button" class="oc-btn" data-go="about">Sobre nosotros</button><button type="button" class="oc-btn" data-go="reviews">Reseñas</button>' +
       '<button type="button" class="oc-btn oc-btn--cream oo-wide" data-go="summary">Ver mi pedido</button></div>' +
@@ -549,6 +575,7 @@
         '<a href="' + esc(SOCIAL.instagram) + '" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Da Enzo (pestaña nueva)">' + IG + '<span>Instagram</span></a>' +
         '<a href="' + esc(SOCIAL.facebook) + '" target="_blank" rel="noopener noreferrer" aria-label="Facebook de Da Enzo (pestaña nueva)">' + FB + '<span>Facebook</span></a>' +
       '</div>';
+    if (lastPanel) lastPanel.then(function(){ var sp = cBody.querySelector('[data-panel-id]'); if (sp && order.panelId) sp.textContent = ' (' + order.panelId + ')'; });
     DE.openWindow('confirmacion');
   } };
 
@@ -568,6 +595,14 @@
     '</li>';
   }
   O.summaryLine = lineHTML;
+  /* Estado que marca el personal en el panel de demostración (mismo navegador) */
+  function panelStatus(o){
+    if (!o.panelId || !window.DaEnzoDB) return '';
+    var po = DaEnzoDB.peek().orders.filter(function(x){ return x.id === o.panelId; })[0]; if (!po) return '';
+    var st = po.status === 'nuevo' ? 'Recibido · pendiente de confirmar' : DaEnzoDB.statusLabel(po.status, 'local');
+    return '<p class="dl-status-line"><span class="dl-badge' + (po.status === 'nuevo' ? ' dl-badge--demo' : '') + '">' + esc(st) + (po.payment.status === 'confirmado' ? ' · pagado' : '') + ' · panel demo</span></p>';
+  }
+  if (window.DaEnzoDB) DaEnzoDB.subscribe(function(){ if (sWin.classList.contains('open')) { var y = sBody.scrollTop; renderSummary(); sBody.scrollTop = y; } });
   function renderSummary(){
     loadPlaced();
     var dls = O.deliveryService.store.all();
@@ -580,13 +615,14 @@
       '<p class="oc-note oc-note--ok">' + ICON.check + (T.count === 1 ? 'Pedido en proceso' : T.count + ' pedidos en proceso') + (placed.orders[0].table ? ' · Mesa ' + esc(placed.orders[0].table) : '') + '</p>' +
       placed.orders.slice().reverse().map(function(o){
         return '<section class="os-order" aria-label="Pedido ' + o.n + '">' +
-          '<header class="os-order-head"><b>Pedido ' + o.n + '</b><span>' + time(o.at) + ' · ' + o.units + ' ' + (o.units === 1 ? 'producto' : 'productos') + '</span><strong>' + O.money(o.total) + '</strong></header>' +
+          '<header class="os-order-head"><b>Pedido ' + o.n + '</b><span>' + (o.panelId ? esc(o.panelId) + ' · ' : '') + time(o.at) + ' · ' + o.units + ' ' + (o.units === 1 ? 'producto' : 'productos') + '</span><strong>' + O.money(o.total) + '</strong></header>' +
+          panelStatus(o) +
           '<ul class="os-lines">' + o.lines.map(function(l, i){ l._sid = 'l' + o.n + '-'; return lineHTML(l, i); }).join('') + '</ul>' +
         '</section>';
       }).join('') +
       '<dl class="oc-sum"><div><dt>Pedidos</dt><dd>' + T.count + '</dd></div><div><dt>Unidades</dt><dd>' + T.units + '</dd></div><div class="oc-sum-total"><dt>Total a pagar</dt><dd>' + O.money(T.total) + '</dd></div></dl>' +
       '<p class="oo-pay oo-pay--light"><span><b>Puedes pagar en caja.</b> Este resumen es de solo lectura: si necesitas cambiar algo, avisa a tu mesero.</span></p>' +
-      '<p class="oc-price-note">' + esc(M.priceNote) + ' · pedido de demostración, no enviado a cocina.</p>';
+      '<p class="oc-price-note">' + esc(M.priceNote) + ' · pedido de demostración, no enviado a una cocina real.</p>';
   }
   O.summary = { open: function(opener){ renderSummary(); sBody.scrollTop = 0; DE.openWindow('resumen', opener); }, render: renderSummary, win: sWin };
 
