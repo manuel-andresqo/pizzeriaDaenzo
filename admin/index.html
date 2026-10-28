@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1d2711">
 <meta name="robots" content="noindex, nofollow">
+<script>
+/* Si se abre «/admin» sin la barra final, las rutas relativas (css/, js/) fallarían: se corrige */
+if (!/\/$/.test(location.pathname) && !/\.html$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);
+</script>
 <title>Panel de control · Da Enzo Pizzería</title>
 <link rel="icon" href="../assets/logo-da-enzo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">

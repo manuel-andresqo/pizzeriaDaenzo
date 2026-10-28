@@ -1,0 +1,5 @@
+{
+  "redirects": [
+    { "source": "/panel", "destination": "/admin/", "permanent": false }
+  ]
+}
