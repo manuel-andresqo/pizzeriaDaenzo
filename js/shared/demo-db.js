@@ -86,6 +86,10 @@
   function remote(){ var d = read(); if (d.rev === lastRev) return; lastRev = d.rev; notify(d, { rev: d.rev, local: false }); }
   if (bc) bc.onmessage = function(m){ if (m.data && m.data.tab !== TAB) remote(); };
   addEventListener('storage', function(e){ if (e.key === KEY) remote(); });
+  /* En el teléfono, la pestaña que queda en segundo plano se congela y puede perder
+     los avisos: al volver a ella (o cada 2 s mientras está visible) se revisa si hay cambios. */
+  ['visibilitychange','focus','pageshow'].forEach(function(ev){ addEventListener(ev, function(){ if (!document.hidden) remote(); }); });
+  setInterval(function(){ if (!document.hidden) remote(); }, 2000);
   function emit(d, type, data){
     d.seq.event++;
     d.events.push({ id: d.seq.event, at: new Date().toISOString(), type: type, tab: TAB, data: data });
