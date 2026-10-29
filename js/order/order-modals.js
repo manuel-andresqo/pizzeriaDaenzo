@@ -626,7 +626,7 @@
       '<p class="oo-pay oo-pay--light"><span><b>Puedes pagar en caja.</b> Este resumen es de solo lectura: si necesitas cambiar algo, avisa a tu mesero.</span></p>' +
       '<p class="oc-price-note">' + esc(M.priceNote) + ' · pedido de demostración, no enviado a una cocina real.</p>';
   }
-  O.summary = { open: function(opener){ renderSummary(); sBody.scrollTop = 0; DE.openWindow('resumen', opener); }, render: renderSummary, win: sWin };
+  O.summary = { open: function(opener){ if (O.prunePlaced) O.prunePlaced(); renderSummary(); sBody.scrollTop = 0; DE.openWindow('resumen', opener); }, render: renderSummary, win: sWin };
 
   /* Botón flotante «Ver mi pedido» (visible en todo el sitio cuando hay un pedido hecho) */
   var pBtn = document.getElementById('odPlaced');
@@ -636,8 +636,10 @@
       avoid: function(){ return [document.getElementById('odMbar'), document.getElementById('odWaiter'), document.getElementById('abOrder')]; }
     });
     /* Pedidos en el local (caducan a los 5 min) + pedidos a domicilio de esta pestaña */
+    var pruning = false;
     O.placedBtn = {
       show: function(){
+        if (O.prunePlaced && !pruning){ pruning = true; try { O.prunePlaced(); } finally { pruning = false; } }
         loadPlaced();
         var dls = O.deliveryService.store.all();
         if (!placed && !dls.length){ pBtn.hidden = true; return; }
@@ -661,8 +663,8 @@
      Cerrado = (finalizado o entregado) Y pago confirmado, o cancelado.
      Cuando TODOS los pedidos del cliente están cerrados se borran de este dispositivo;
      el botón vuelve a aparecer solo con un pedido nuevo. */
-  function closedInPanel(id, d){
-    if (!id) return false;                                     // aún registrándose: se mantiene
+  function closedInPanel(id, d, at){
+    if (!id) return !!at && Date.now() - new Date(at).getTime() > 60000;   // pedido antiguo sin registro en el panel: se retira
     var o = d.orders.filter(function(x){ return x.id === id; })[0];
     if (!o) return d.seq.order < +String(id).replace('DE-', '');   // la demo se restableció
     return o.status === 'cancelado' || ((o.status === 'finalizado' || o.status === 'entregado') && o.payment.status === 'confirmado');
@@ -671,9 +673,9 @@
     if (!window.DaEnzoDB) return;
     var d = DaEnzoDB.peek(), changed = false;
     loadPlaced();
-    if (placed && placed.orders.every(function(o){ return closedInPanel(o.panelId, d); })){ placed = null; savePlaced(); changed = true; }
+    if (placed && placed.orders.every(function(o){ return closedInPanel(o.panelId, d, o.at); })){ placed = null; savePlaced(); changed = true; }
     var DS = O.deliveryService, dl = DS.store.all();
-    if (dl.length && dl.every(function(e){ return closedInPanel(e.demoId, d); })){ DS.store.clear(); changed = true; }
+    if (dl.length && dl.every(function(e){ return closedInPanel(e.demoId, d, e.demoId ? null : e.createdAt); })){ DS.store.clear(); changed = true; }
     if (changed){
       O.placedBtn && O.placedBtn.sync();
       if (sWin.classList.contains('open')) renderSummary();
