@@ -558,7 +558,7 @@ a{color:inherit}
   .top-k{font-size:11px}
   .demo-pill{height:28px;padding:0 10px;font-size:10px}
   .demo-pill i{display:none}
-  .sync{display:none}
+  .sync span{display:none}
   .ibtn{width:40px;height:40px}
   .view{padding:18px 16px calc(96px + env(safe-area-inset-bottom))}
   .kpis,.kpis--sales{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -625,3 +625,7 @@ a{color:inherit}
 
 .dp-s{display:none}
 @media (max-width:760px){ .dp-l{display:none} .dp-s{display:inline} .top-acts{gap:6px} }
+
+.sync[data-state="connecting"] i{background:var(--gold);box-shadow:0 0 0 3px rgba(233,181,74,.2)}
+.sync[data-state="offline"] i,.sync[data-state="error"] i{background:var(--t-cancel);box-shadow:0 0 0 3px rgba(168,50,58,.18)}
+.sync[data-state="live"] i{background:#2c72a0;box-shadow:0 0 0 3px rgba(44,114,160,.2)}

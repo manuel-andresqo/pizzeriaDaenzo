@@ -74,8 +74,10 @@
   function notify(d, change){ subs.forEach(function(fn){ try { fn(d, change); } catch(e){ setTimeout(function(){ throw e; }); } }); }
   /* Lee-modifica-escribe en un solo paso (las pestañas del mismo navegador no escriben a la vez) */
   function write(mut){
-    var d = read(), res = mut(d);
+    var d = read(), before = cloud ? clone(d) : null, res = mut(d);
     d.rev++; lastRev = d.rev;
+    if (cloud) cloud.push(before, d);
+    delete d.__full;
     try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e){ return Promise.reject(new Error('No se pudo guardar en este navegador (almacenamiento lleno o bloqueado).')); }
     var change = { rev: d.rev, tab: TAB, local: true };
     if (bc) try { bc.postMessage({ rev: d.rev, tab: TAB }); } catch(e){}
@@ -197,10 +199,120 @@
   function resetOverrides(){ return write(function(d){ d.overrides = {}; emit(d, 'catalog', { all: true }); }); }
 
   /* ---------- Demo ---------- */
-  function reset(){ return write(function(d){ var e = empty(); Object.keys(e).forEach(function(k){ d[k] = e[k]; }); d.rev = Math.max(d.rev, 1); emit(d, 'reset', {}); }); }
-  function replaceAll(data){ return write(function(d){ ['seq','orders','requests','events'].forEach(function(k){ d[k] = data[k]; }); emit(d, 'seed', { orders: data.orders.length }); }); }
+  function reset(){ return write(function(d){ var r = d.rev, e = empty(); Object.keys(e).forEach(function(k){ d[k] = e[k]; }); d.rev = r; emit(d, 'reset', {}); d.__full = true; }); }
+  function replaceAll(data){ return write(function(d){ ['seq','orders','requests','events'].forEach(function(k){ d[k] = data[k]; }); emit(d, 'seed', { orders: data.orders.length }); d.__full = true; }); }
+
+  /* =========================================================
+     NUBE (opcional) — sincronización entre dispositivos para la DEMO
+     Se activa con DAENZO_CLOUD.databaseURL (js/shared/demo-cloud.js):
+     Firebase Realtime Database por su API REST + transmisión (EventSource),
+     sin librerías. Cada dispositivo guarda una copia local (la de arriba)
+     que se mantiene igual a la de la nube en tiempo real.
+     · Escrituras: solo las entidades que cambian (PATCH multiruta).
+     · Lecturas: flujo 'put'/'patch' → copia local → avisos a la interfaz.
+     · Si la nube no responde, todo sigue funcionando en este navegador.
+     ========================================================= */
+  var CFG = window.DAENZO_CLOUD || {}, cloud = null;
+  if (CFG.databaseURL && window.fetch && window.EventSource){
+    cloud = (function(){
+      var base = CFG.databaseURL.replace(/\/+$/, '') + '/' + (CFG.path || 'daenzo-demo');
+      var mirror = null, es = null, state = 'connecting', fns = [], first = true, retry = null;
+      function setState(s){ if (s === state) return; state = s; fns.forEach(function(f){ try { f(s); } catch(e){} }); }
+      function toObj(arr, key){ var o = {}; arr.forEach(function(x){ o[key(x)] = x; }); return o; }
+      function ek(e){ return 'e' + e.id; }
+      function toCloud(d){ return { seq: d.seq, orders: toObj(d.orders, function(o){ return o.id; }), requests: toObj(d.requests, function(r){ return r.id; }), events: toObj(d.events, ek), overrides: d.overrides }; }
+      function vals(o){ return o ? Object.keys(o).map(function(k){ return o[k]; }).filter(Boolean) : []; }
+      function arr(x){ return Array.isArray(x) ? x.filter(function(v){ return v != null; }) : x ? vals(x) : []; }
+      /* Firebase omite listas y objetos vacíos: se reconstruyen aquí */
+      function fromCloud(c, local){
+        c = c || {};
+        var d = empty(); d.rev = local.rev;
+        d.seq = Object.assign(d.seq, c.seq || {});
+        d.orders = vals(c.orders).map(function(o){ o.items = arr(o.items).map(function(i){ i.extras = arr(i.extras); return i; }); o.history = arr(o.history); o.payment = o.payment || { status:'pendiente' }; return o; })
+          .sort(function(a, b){ return a.createdAt < b.createdAt ? -1 : 1; });
+        d.requests = vals(c.requests).map(function(r){ r.orders = arr(r.orders); r.history = arr(r.history); return r; }).sort(function(a, b){ return a.createdAt < b.createdAt ? -1 : 1; });
+        d.events = vals(c.events).map(function(e){ e.data = e.data || {}; return e; }).sort(function(a, b){ return a.id - b.id; });
+        d.overrides = c.overrides || {};
+        return d;
+      }
+      function diff(a, b){
+        var p = {}, n = 0;
+        [['orders', function(o){ return o.id; }], ['requests', function(r){ return r.id; }], ['events', ek]].forEach(function(c){
+          var A = toObj(a[c[0]], c[1]), B = toObj(b[c[0]], c[1]);
+          Object.keys(B).forEach(function(k){ if (JSON.stringify(A[k]) !== JSON.stringify(B[k])){ p[c[0] + '/' + k] = B[k]; n++; } });
+          Object.keys(A).forEach(function(k){ if (!(k in B)){ p[c[0] + '/' + k] = null; n++; } });
+        });
+        if (JSON.stringify(a.seq) !== JSON.stringify(b.seq)){ p.seq = b.seq; n++; }
+        if (JSON.stringify(a.overrides) !== JSON.stringify(b.overrides)){ p.overrides = Object.keys(b.overrides).length ? b.overrides : null; n++; }
+        return n ? p : null;
+      }
+      function send(method, body, tries){
+        return fetch(base + '.json', { method: method, body: JSON.stringify(body) }).then(function(r){
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+        }).catch(function(){
+          setState('error');
+          if ((tries || 0) < 4) setTimeout(function(){ send(method, body, (tries || 0) + 1); }, 1500 * ((tries || 0) + 1));
+        });
+      }
+      function setAt(obj, path, val){
+        var parts = path.split('/').filter(Boolean);
+        if (!parts.length) return val;
+        obj = obj && typeof obj === 'object' ? obj : {};
+        var cur = obj;
+        for (var i = 0; i < parts.length - 1; i++){ if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {}; cur = cur[parts[i]]; }
+        if (val === null) delete cur[parts[parts.length - 1]]; else cur[parts[parts.length - 1]] = val;
+        return obj;
+      }
+      function apply(initial){
+        var local = read(), d = fromCloud(mirror, local);
+        d.rev = local.rev + 1; lastRev = d.rev;
+        try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e){}
+        if (bc) try { bc.postMessage({ rev: d.rev, tab: TAB }); } catch(e){}
+        notify(d, { rev: d.rev, local: false, cloud: true, initial: !!initial });
+      }
+      function onData(kind, ev){
+        var m; try { m = JSON.parse(ev.data); } catch(e){ return; }
+        if (!m || typeof m.path !== 'string') return;
+        var init = first && kind === 'put' && m.path === '/';
+        if (init && (m.data === null || !m.data.seq)){       // nube vacía: se sube lo que haya en este dispositivo
+          var loc = read(); first = false;
+          mirror = toCloud(loc);
+          if (loc.orders.length || loc.requests.length || Object.keys(loc.overrides).length) send('PUT', mirror);
+          setState('live'); return;
+        }
+        if (kind === 'put') mirror = setAt(mirror, m.path, m.data);
+        else Object.keys(m.data || {}).forEach(function(k){ mirror = setAt(mirror, m.path.replace(/\/$/, '') + '/' + k, m.data[k]); });
+        first = false; setState('live'); apply(init);
+      }
+      function connect(){
+        clearTimeout(retry);
+        if (es) try { es.close(); } catch(e){}
+        first = true; setState('connecting');
+        es = new EventSource(base + '.json');
+        es.addEventListener('put', function(ev){ onData('put', ev); });
+        es.addEventListener('patch', function(ev){ onData('patch', ev); });
+        es.addEventListener('cancel', function(){ setState('error'); });
+        es.onerror = function(){ if (es.readyState === 2){ setState('offline'); retry = setTimeout(connect, 4000); } else setState('connecting'); };
+      }
+      /* al volver a la pestaña (iPhone la congela en segundo plano) se reconecta y se resincroniza */
+      addEventListener('visibilitychange', function(){ if (!document.hidden && (!es || es.readyState === 2)) connect(); });
+      addEventListener('online', connect);
+      connect();
+      return {
+        push: function(before, after){
+          if (after.__full){ delete after.__full; mirror = toCloud(after); send('PUT', mirror); return; }
+          var p = diff(before, after); if (!p) return;
+          Object.keys(p).forEach(function(k){ mirror = setAt(mirror, k, p[k]); });
+          send('PATCH', p);
+        },
+        state: function(){ return state; },
+        onState: function(f){ fns.push(f); }
+      };
+    })();
+  }
 
   window.DaEnzoDB = {
+    cloud: { enabled: !!cloud, state: function(){ return cloud ? cloud.state() : 'local'; }, onState: function(f){ if (cloud) cloud.onState(f); } },
     adapter: 'demo-local',                       // con backend: 'api'
     tab: TAB,
     STATUS: STATUS, PAYMENT: PAYMENT, REQUEST: REQUEST, FLOW: FLOW,

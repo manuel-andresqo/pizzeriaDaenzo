@@ -123,8 +123,9 @@
   document.addEventListener('click', function(e){ if (!$('#bell').hidden && !e.target.closest('#bell') && !e.target.closest('#bellBtn')) bell(false); });
 
   /* ---------- Eventos nuevos → avisos (solo cuando ocurre algo nuevo, nunca al redibujar) ---------- */
-  function onEvents(d){
+  function onEvents(d, change){
     var maxId = d.seq.event;
+    if (change && change.initial){ processed = maxId; return; }   // primera copia desde la nube: no son eventos nuevos
     if (maxId < processed){ processed = 0; if (seen() > maxId) setSeen(0); }        // la demo se restableció
     var fresh = d.events.filter(function(e){ return e.id > processed && !e.seed; });
     processed = maxId;
@@ -146,12 +147,21 @@
     if (ring){ PV.sound.play(); var s = $('#sync'); s.classList.remove('ping'); void s.offsetWidth; s.classList.add('ping'); }
   }
 
+  /* Indicador de conexión: solo este navegador o nube (todos los dispositivos) */
+  function paintSync(){
+    var s = $('#sync'), st = DB.cloud.state(), txt = {
+      local: 'Conectado a la web · este navegador', live: 'En la nube · todos los dispositivos (demo)',
+      connecting: 'Conectando con la nube…', offline: 'Sin conexión con la nube · reintentando', error: 'Error con la nube · reintentando' }[st] || st;
+    s.querySelector('span').textContent = txt; s.title = txt; s.dataset.state = st;
+  }
+  DB.cloud.onState(paintSync); paintSync();
+
   var started = false;
   function start(){
     if (started) return; started = true;
     processed = PV.data().seq.event;                   // lo anterior a abrir el panel no genera avisos
-    DB.subscribe(function(d){
-      onEvents(d);
+    DB.subscribe(function(d, change){
+      onEvents(d, change);
       var v = PV.views[current]; if (v && v.update) v.update(viewEl, d);
       paintIndicators(d);
     });

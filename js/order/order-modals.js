@@ -489,7 +489,9 @@
      Al confirmar se guarda una copia con nombres, opciones y precios
      (localStorage 'daenzo.placedOrder.v1'). Al cerrar la confirmación el
      carrito se vacía y aparece el botón flotante «Ver mi pedido». */
-  var PKEY = 'daenzo.placedOrders.v1', TTL = (M.placedOrders && M.placedOrders.ttlMs) || 300000;
+  /* Con el panel de control, el botón se retira cuando el personal marca el pedido como
+     terminado y pagado (o cancelado). Sin panel se mantiene la caducidad de 5 minutos. */
+  var PKEY = 'daenzo.placedOrders.v1', TTL = window.DaEnzoDB ? 24 * 3600000 : ((M.placedOrders && M.placedOrders.ttlMs) || 300000);
   var placed = null, expiryTimer = null;      // { orders:[…], expiresAt }
   function loadPlaced(){
     try { placed = JSON.parse(localStorage.getItem(PKEY) || 'null'); } catch(e){ placed = null; }
@@ -654,6 +656,32 @@
     };
     O.placedBtn.show();
   }
+
+  /* ---------- Pedido cerrado por el personal → desaparece «Ver mi pedido» ----------
+     Cerrado = (finalizado o entregado) Y pago confirmado, o cancelado.
+     Cuando TODOS los pedidos del cliente están cerrados se borran de este dispositivo;
+     el botón vuelve a aparecer solo con un pedido nuevo. */
+  function closedInPanel(id, d){
+    if (!id) return false;                                     // aún registrándose: se mantiene
+    var o = d.orders.filter(function(x){ return x.id === id; })[0];
+    if (!o) return d.seq.order < +String(id).replace('DE-', '');   // la demo se restableció
+    return o.status === 'cancelado' || ((o.status === 'finalizado' || o.status === 'entregado') && o.payment.status === 'confirmado');
+  }
+  function prune(){
+    if (!window.DaEnzoDB) return;
+    var d = DaEnzoDB.peek(), changed = false;
+    loadPlaced();
+    if (placed && placed.orders.every(function(o){ return closedInPanel(o.panelId, d); })){ placed = null; savePlaced(); changed = true; }
+    var DS = O.deliveryService, dl = DS.store.all();
+    if (dl.length && dl.every(function(e){ return closedInPanel(e.demoId, d); })){ DS.store.clear(); changed = true; }
+    if (changed){
+      O.placedBtn && O.placedBtn.sync();
+      if (sWin.classList.contains('open')) renderSummary();
+    }
+  }
+  O.prunePlaced = prune;
+  /* después de que el seguimiento muestre el último estado */
+  if (window.DaEnzoDB){ DaEnzoDB.subscribe(function(){ setTimeout(prune, 0); }); prune(); }
 
   /* Carrito en ventana (móvil) */
   var kWin = $('#win-carrito'), kBody = $('.win-body', kWin);

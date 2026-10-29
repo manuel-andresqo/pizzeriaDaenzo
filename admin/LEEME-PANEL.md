@@ -62,3 +62,19 @@ admin/js/panel-boot.js    ← entrada, navegación, avisos de eventos nuevos
 - Integración de WhatsApp Business Platform desde el servidor (credenciales solo en el servidor, reintentos, sin duplicados).
 - Verificación de pagos, caja, inventario, empleados e informes avanzados cuando se aprueben.
 - Seguridad: HTTPS, CSP, limitación de peticiones, copias de seguridad, cumplimiento de privacidad de datos de clientes.
+
+## 7. «Ver mi pedido» se cierra desde el panel
+El botón flotante de la web desaparece cuando el personal deja **todos** los pedidos de ese cliente terminados **y** con pago confirmado (Finalizado/Entregado + Pago confirmado), o cancelados. Se borran del dispositivo del cliente y el botón vuelve a aparecer solo con un pedido nuevo. (Sin panel, se mantiene la caducidad de 5 minutos.)
+
+## 8. Conectar dispositivos (teléfono + laptop) en tiempo real — demo
+Sin configuración, la demo funciona solo dentro de un mismo navegador. Para conectar la web del teléfono con el panel en la laptop se usa una **Firebase Realtime Database** gratuita (solo para la demo):
+1. https://console.firebase.google.com → «Crear un proyecto» (p. ej. `daenzo-demo`, sin Google Analytics).
+2. Menú «Compilación» → «Realtime Database» → «Crear base de datos» → ubicación Estados Unidos → «Comenzar en modo de prueba».
+3. Pestaña «Reglas» → pegar y publicar (abre solo la carpeta de la demo, sin fecha de caducidad):
+   ```json
+   { "rules": { ".read": false, ".write": false, "daenzo-demo": { ".read": true, ".write": true } } }
+   ```
+4. Copiar la URL de la base (p. ej. `https://daenzo-demo-default-rtdb.firebaseio.com`) en `js/shared/demo-cloud.js` → `databaseURL`, y subir a GitHub.
+
+Funcionamiento: cada dispositivo mantiene una copia local que se sincroniza con la nube (API REST + transmisión EventSource, sin librerías). El indicador del panel muestra «En la nube · todos los dispositivos (demo)».
+Avisos: la base de la demo es pública para quien tenga la URL; no introducir datos reales de clientes. Si dos dispositivos crean un pedido en el mismo segundo podría repetirse el número (limitación de la demo; en producción el servidor asigna los números).
